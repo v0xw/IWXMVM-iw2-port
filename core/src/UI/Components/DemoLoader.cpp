@@ -254,13 +254,14 @@ namespace IWXMVM::UI
             }
 
             const auto savePath = GetRecentDemosPath();
-            std::filesystem::create_directories(savePath.parent_path());
-
-            std::ofstream file(savePath, std::ios::trunc);
-            if (file.is_open())
+            if (!std::filesystem::exists(savePath.parent_path()))
             {
-                file << json.dump(4);
+                std::filesystem::create_directories(savePath.parent_path());
             }
+
+            std::ofstream recentDemosFile(savePath);
+            recentDemosFile << json.dump(4);
+            recentDemosFile.close();
         }
         catch (const std::exception& e)
         {
@@ -297,6 +298,11 @@ namespace IWXMVM::UI
                         recentDemos.emplace_back(std::move(path));
                     }
                 }
+            }
+
+            while (recentDemos.size() > maxRecentDemos)
+            {
+                recentDemos.pop_back();
             }
         }
         catch (const std::exception& e)

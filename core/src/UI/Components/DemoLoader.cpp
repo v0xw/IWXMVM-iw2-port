@@ -233,6 +233,78 @@ namespace IWXMVM::UI
         }).detach();
     }
 
+    std::filesystem::path GetRecentDemosPath()
+    {
+        return PathUtils::GetIWXMVMPath() / "recent_demos.json";
+    }
+
+    constexpr std::string_view NODE_RECENT_DEMOS = "recent_demos";
+
+    void DemoLoader::SaveRecentDemos()
+    {
+        try
+        {
+            nlohmann::json json;
+
+            json[NODE_RECENT_DEMOS] = nlohmann::json::array();
+
+            for (const auto& path : recentDemos)
+            {
+                json[NODE_RECENT_DEMOS].push_back(path.string());
+            }
+
+            const auto savePath = GetRecentDemosPath();
+            std::filesystem::create_directories(savePath.parent_path());
+
+            std::ofstream file(savePath, std::ios::trunc);
+            if (file.is_open())
+            {
+                file << json.dump(4);
+            }
+        }
+        catch (const std::exception& e)
+        {
+            LOG_ERROR("Failed to save recent demos: {}", e.what());
+        }
+    }
+
+    void DemoLoader::LoadRecentDemos()
+    {
+        try
+        {
+            const auto loadPath = GetRecentDemosPath();
+            if (!std::filesystem::exists(loadPath))
+                return;
+
+            std::ifstream file(loadPath);
+            if (!file.is_open())
+                return;
+
+            nlohmann::json json;
+            file >> json;
+
+            if (!json.contains(NODE_RECENT_DEMOS) || !json[NODE_RECENT_DEMOS].is_array())
+                return;
+
+            recentDemos.clear();
+            for (const auto& item : json[NODE_RECENT_DEMOS])
+            {
+                if (item.is_string())
+                {
+                    std::filesystem::path path(item.get<std::string>());
+                    if (std::filesystem::exists(path))
+                    {
+                        recentDemos.emplace_back(std::move(path));
+                    }
+                }
+            }
+        }
+        catch (const std::exception& e)
+        {
+            LOG_ERROR("Failed to load recent demos: {}", e.what());
+        }
+    }
+
     bool DemoLoader::DemoFilter(const std::u8string& demoFileName)
     {
         // TODO: possibly make filter more advanced, add features like "" for exact search etc
@@ -252,8 +324,8 @@ namespace IWXMVM::UI
         return keepDemo;
     }
 
-
-    void DemoLoader::RenderDemos(const std::vector<std::filesystem::path>& demos)
+    template <typename T>
+    void DemoLoader::RenderDemos(const T& demos, bool addToRecentOnPlay)
     {
         ImGuiListClipper clipper;
         clipper.Begin(demos.size());
@@ -281,6 +353,15 @@ namespace IWXMVM::UI
                                           ImVec2(ImGui::GetFontSize() * 4, ImGui::GetFontSize() * 1.5f)))
                         {
                             Mod::GetGameInterface()->PlayDemo(demos[i]);
+                            if (addToRecentOnPlay)
+                            {
+                                recentDemos.emplace_front(demos[i]);
+                                if (recentDemos.size() > maxRecentDemos)
+                                {
+                                    recentDemos.pop_back();
+                                }
+                                SaveRecentDemos();
+                            }
                         }
                     }
 
@@ -448,6 +529,20 @@ namespace IWXMVM::UI
     void DemoLoader::Initialize()
     {
         FindAllDemos();
+        LoadRecentDemos();
+    }
+
+    void DemoLoader::RenderRecentDemos()
+    {
+        if (recentDemos.size() > 0)
+        {
+            if (ImGui::TreeNodeEx("Recently Played Demos", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                RenderDemos(recentDemos, false);
+
+                ImGui::TreePop();
+            }
+        }
     }
 
     void DemoLoader::Render()
@@ -505,6 +600,7 @@ namespace IWXMVM::UI
 
                 // Search paths will always be rendered, even if empty
                 RenderSearchBar();
+                RenderRecentDemos();
                 RenderSearchPaths();
             }
 

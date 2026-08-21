@@ -32,6 +32,7 @@
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="$(SolutionDir)core\d3dx.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Label="Shared">
@@ -46,14 +47,14 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)$(ProjectName)\bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)$(ProjectName)\bin\$(Platform)\$(Configuration)\intermediate\</IntDir>
-    <IncludePath>$(DXSDK_DIR)Include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(DXSDK_DIR)Lib\x86;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(D3DXIncludeDir);$(IncludePath)</IncludePath>
+    <LibraryPath>$(D3DXLibDir);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)$(ProjectName)\bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)$(ProjectName)\bin\$(Platform)\$(Configuration)\intermediate\</IntDir>
-    <IncludePath>$(DXSDK_DIR)Include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(DXSDK_DIR)Lib\x86;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(D3DXIncludeDir);$(IncludePath)</IncludePath>
+    <LibraryPath>$(D3DXLibDir);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -67,6 +68,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>StdInclude.hpp</PrecompiledHeaderFile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
@@ -75,8 +77,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>cl third-party/incbin/incbin.c  /Fo:third-party/incbin/ /link /out:third-party/incbin/incbin.exe
-"third-party/incbin/incbin.exe" src/Resources.cpp -o src/ResourceData.cpp -Ssnakecase -p""</Command>
+      <Command>cl /nologo third-party\incbin\incbin.c /Fo"$(IntDir)incbin.obj" /Fe"$(IntDir)incbin.exe"
+"$(IntDir)incbin.exe" src/Resources.cpp -o src/ResourceData.cpp -Ssnakecase -p""</Command>
     </PreBuildEvent>
     <PreLinkEvent>
       <Command>
@@ -97,6 +99,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>StdInclude.hpp</PrecompiledHeaderFile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -105,8 +108,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>cl third-party/incbin/incbin.c  /Fo:third-party/incbin/ /link /out:third-party/incbin/incbin.exe
-"third-party/incbin/incbin.exe" src/Resources.cpp -o src/ResourceData.cpp -Ssnakecase -p""</Command>
+      <Command>cl /nologo third-party\incbin\incbin.c /Fo"$(IntDir)incbin.obj" /Fe"$(IntDir)incbin.exe"
+"$(IntDir)incbin.exe" src/Resources.cpp -o src/ResourceData.cpp -Ssnakecase -p""</Command>
     </PreBuildEvent>
     <PreLinkEvent>
       <Command>
@@ -195,6 +198,7 @@
     <ClInclude Include="src\Input.hpp" />
     <ClInclude Include="src\Types\BoneData.hpp" />
     <ClInclude Include="src\Types\DemoInfo.hpp" />
+    <ClInclude Include="src\Types\DemoMarker.hpp" />
     <ClInclude Include="src\Types\Dof.hpp" />
     <ClInclude Include="src\Types\Dvar.hpp" />
     <ClInclude Include="src\Types\Entity.hpp" />

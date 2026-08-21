@@ -6,6 +6,7 @@
 #include "Types/GameState.hpp"
 #include "Types/Game.hpp"
 #include "Types/DemoInfo.hpp"
+#include "Types/DemoMarker.hpp"
 #include "Types/MouseMode.hpp"
 #include "Types/Dvar.hpp"
 #include "Types/Sun.hpp"
@@ -62,6 +63,13 @@ namespace IWXMVM
         virtual Types::DemoInfo GetDemoInfo() = 0;
         virtual std::string_view GetDemoExtension() = 0;
 
+        // Optional: events worth marking on the timeline (kills, ...). Called every frame while drawing.
+        virtual const std::vector<Types::DemoMarker>& GetDemoMarkers()
+        {
+            static const std::vector<Types::DemoMarker> none;
+            return none;
+        }
+
         virtual void PlayDemo(std::filesystem::path demoPath) = 0;
         virtual void Disconnect() = 0;
         virtual void Vid_Restart() = 0;
@@ -98,6 +106,10 @@ namespace IWXMVM
         // Some games have demo file footers/headers (see IW5)
         virtual uint32_t GetDemoFooterSize() { return 0; }
         virtual uint32_t GetDemoHeaderSize() { return 0; }
+
+        // Size of the per-message header in the demo file
+        // (CoD4: [type:1][seq:4][len:4] = 9, CoD2: [seq:4][len:4] = 8)
+        virtual uint32_t GetDemoMessageHeaderSize() { return 9; }
 
        private:
         Types::Game game;

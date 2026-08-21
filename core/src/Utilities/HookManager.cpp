@@ -77,6 +77,11 @@ namespace IWXMVM::HookManager
     void Unhook(std::uintptr_t originalPtr)
     {
         auto result = MH_DisableHook((void*)originalPtr);
+        if (result == MH_ERROR_NOT_INITIALIZED || result == MH_ERROR_NOT_CREATED || result == MH_ERROR_DISABLED)
+        {
+            // already torn down by UnhookAll() (shutdown order: hooks first, UI afterwards) - nothing to do
+            return;
+        }
         if (result != MH_OK)
         {
             throw std::runtime_error(

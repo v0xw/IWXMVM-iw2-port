@@ -42,7 +42,11 @@ namespace IWXMVM::IW5::Hooks::Playback
             return CL_Demo_ReadInternal_Trampoline(handle, buffer, len);
         }
 
-        auto result = Components::Rewinding::FS_Read(buffer, len);
+        // classify the read for core: 1 byte = message type (start of a message), > 12 bytes = payload
+        const auto kind = len == 1   ? Components::Rewinding::DemoReadKind::MessageStart
+                          : len > 12 ? Components::Rewinding::DemoReadKind::Payload
+                                     : Components::Rewinding::DemoReadKind::Other;
+        auto result = Components::Rewinding::FS_Read(buffer, len, kind);
         if (result == -1)
         {
             return CL_Demo_ReadInternal_Trampoline(handle, buffer, len);

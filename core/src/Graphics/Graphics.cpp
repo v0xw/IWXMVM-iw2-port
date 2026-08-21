@@ -31,9 +31,10 @@ namespace IWXMVM::GFX
             &vertexShaderBuffer, &errorMessageBuffer, nullptr);
         if (FAILED(hr))
         {
-            LOG_ERROR("Failed to compile vertex shader: {}",
-                reinterpret_cast<const char*>(errorMessageBuffer->GetBufferPointer()));
-            errorMessageBuffer->Release();
+            LOG_ERROR("Failed to compile vertex shader (hr = {:#x}): {}", static_cast<unsigned long>(hr),
+                      errorMessageBuffer ? reinterpret_cast<const char*>(errorMessageBuffer->GetBufferPointer()) : "(no error message; is D3DCompiler_43.dll installed?)");
+            if (errorMessageBuffer)
+                errorMessageBuffer->Release();
             return;
         }
         hr = device->CreateVertexShader(reinterpret_cast<const DWORD*>(vertexShaderBuffer->GetBufferPointer()),
@@ -49,9 +50,10 @@ namespace IWXMVM::GFX
             NULL, &pixelShaderBuffer, &errorMessageBuffer, nullptr);
         if (FAILED(hr))
         {
-            LOG_ERROR("Failed to compile pixel shader: {}",
-                reinterpret_cast<const char*>(errorMessageBuffer->GetBufferPointer()));
-            errorMessageBuffer->Release();
+            LOG_ERROR("Failed to compile pixel shader (hr = {:#x}): {}", static_cast<unsigned long>(hr),
+                      errorMessageBuffer ? reinterpret_cast<const char*>(errorMessageBuffer->GetBufferPointer()) : "(no error message; is D3DCompiler_43.dll installed?)");
+            if (errorMessageBuffer)
+                errorMessageBuffer->Release();
             return;
         }
         hr = device->CreatePixelShader(reinterpret_cast<const DWORD*>(pixelShaderBuffer->GetBufferPointer()),
@@ -134,9 +136,10 @@ namespace IWXMVM::GFX
             &vertexShaderBuffer, &errorMessageBuffer, nullptr);
         if (FAILED(hr))
         {
-            LOG_ERROR("Failed to compile depth vertex shader: {}",
-                reinterpret_cast<const char*>(errorMessageBuffer->GetBufferPointer()));
-            errorMessageBuffer->Release();
+            LOG_ERROR("Failed to compile depth vertex shader (hr = {:#x}): {}", static_cast<unsigned long>(hr),
+                      errorMessageBuffer ? reinterpret_cast<const char*>(errorMessageBuffer->GetBufferPointer()) : "(no error message; is D3DCompiler_43.dll installed?)");
+            if (errorMessageBuffer)
+                errorMessageBuffer->Release();
             return;
         }
         hr = device->CreateVertexShader(reinterpret_cast<const DWORD*>(vertexShaderBuffer->GetBufferPointer()),
@@ -152,9 +155,10 @@ namespace IWXMVM::GFX
             NULL, &pixelShaderBuffer, &errorMessageBuffer, nullptr);
         if (FAILED(hr))
         {
-            LOG_ERROR("Failed to compile depth pixel shader: {}",
-                reinterpret_cast<const char*>(errorMessageBuffer->GetBufferPointer()));
-            errorMessageBuffer->Release();
+            LOG_ERROR("Failed to compile depth pixel shader (hr = {:#x}): {}", static_cast<unsigned long>(hr),
+                      errorMessageBuffer ? reinterpret_cast<const char*>(errorMessageBuffer->GetBufferPointer()) : "(no error message; is D3DCompiler_43.dll installed?)");
+            if (errorMessageBuffer)
+                errorMessageBuffer->Release();
             return;
         }
         hr = device->CreatePixelShader(reinterpret_cast<const DWORD*>(pixelShaderBuffer->GetBufferPointer()),

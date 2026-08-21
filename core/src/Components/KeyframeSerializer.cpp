@@ -92,11 +92,13 @@ namespace IWXMVM::Components
                     )
                 );
             case Types::KeyframeValueType::CameraData:
+            {
                 auto cameraData = Types::CameraData();
                 cameraData.position = glm::vec3(values[0].get<float>(), values[1].get<float>(), values[2].get<float>());
                 cameraData.rotation = glm::vec3(values[3].get<float>(), values[4].get<float>(), values[5].get<float>());
                 cameraData.fov = values[6].get<float>();
                 return Types::KeyframeValue(cameraData);
+            }
             default:
                 LOG_ERROR("Value type {} is unhandled", magic_enum::enum_name(valueType));
                 throw std::runtime_error("Encountered unhandled value type");

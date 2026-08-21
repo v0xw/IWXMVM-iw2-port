@@ -6,6 +6,7 @@ namespace IWXMVM::Types
     {
         None,
         IW3,
-        IW5
+        IW5,
+        IW2
     };
 }  // namespace IWXMVM::Types

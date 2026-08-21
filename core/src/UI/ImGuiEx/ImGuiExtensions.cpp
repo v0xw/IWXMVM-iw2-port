@@ -8,6 +8,8 @@
 #endif
 
 
+#include "Mod.hpp"
+#include "Configuration/PreferencesConfiguration.hpp"
 #include "Components/Playback.hpp"
 #include "Utilities/MathUtils.hpp"
 #include "Components/CameraManager.hpp"
@@ -57,7 +59,7 @@ namespace ImGuiEx
             static_cast<float>(tick - displayStartTick) / static_cast<float>(displayEndTick - displayStartTick);
         const auto x = rect.Min.x + percentage * barLength - thickness / 2;
 
-        if (x > rect.Max.x)
+        if (x > rect.Max.x || x + thickness < rect.Min.x)
             return;
 
         window->DrawList->AddRectFilled(ImVec2(x, rect.Min.y), ImVec2(x + thickness, rect.Max.y), color);
@@ -78,11 +80,25 @@ namespace ImGuiEx
             }
         }
 
+        // game-provided markers (kills): bright red for the recording player's own, dim red for everyone else's
+        const auto& preferences = IWXMVM::PreferencesConfiguration::Get();
+        for (const auto& marker : IWXMVM::Mod::GetGameInterface()->GetDemoMarkers())
+        {
+            if (marker.tick < displayStartTick || marker.tick > displayEndTick)
+                continue;
+            if (marker.highlighted ? !preferences.showOwnKillMarkers : !preferences.showOtherKillMarkers)
+                continue;
+
+            const auto color = marker.highlighted ? ImVec4(1.0f, 0.1f, 0.1f, 1.0f) : ImVec4(0.8f, 0.1f, 0.1f, 0.45f);
+            DrawProgressLineAtTick(rect, marker.tick, GetColorU32(color), 2, displayStartTick, displayEndTick);
+        }
+
+        // capture range (Record tab) in green
         auto captureSettings = IWXMVM::Components::CaptureManager::Get().GetCaptureSettings();
-        DrawProgressLineAtTick(rect, captureSettings.startTick, GetColorU32(ImVec4(1, 0, 0, 1)), 2, displayStartTick,
-                               displayEndTick);
-        DrawProgressLineAtTick(rect, captureSettings.endTick, GetColorU32(ImVec4(1, 0, 0, 1)), 2, displayStartTick,
-                               displayEndTick);
+        DrawProgressLineAtTick(rect, captureSettings.startTick, GetColorU32(ImVec4(0.1f, 0.9f, 0.2f, 1)), 2,
+                               displayStartTick, displayEndTick);
+        DrawProgressLineAtTick(rect, captureSettings.endTick, GetColorU32(ImVec4(0.1f, 0.9f, 0.2f, 1)), 2,
+                               displayStartTick, displayEndTick);
 
         if (frozenTick)
         {

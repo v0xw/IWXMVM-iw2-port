@@ -121,7 +121,10 @@ namespace IWXMVM::Components::Rewinding
             memset(reinterpret_cast<char*>(addresses.teamChatMsgs.address), 0, addresses.teamChatMsgs.size);
         }
 
-        memset(reinterpret_cast<char*>(addresses.s_compassActors.address), 0, addresses.s_compassActors.size);
+        if (addresses.s_compassActors.address)
+        {
+            memset(reinterpret_cast<char*>(addresses.s_compassActors.address), 0, addresses.s_compassActors.size);
+        }
         memset(reinterpret_cast<char*>(addresses.clc.serverCommands.address), 0, addresses.clc.serverCommands.size);
         memset(reinterpret_cast<char*>(addresses.cg_entities.address), 0, addresses.cg_entities.size);
         memcpy(reinterpret_cast<char*>(addresses.clientInfo.address), initialGamestate->clientInfo,
@@ -137,7 +140,8 @@ namespace IWXMVM::Components::Rewinding
         auto addresses = Mod::GetGameInterface()->GetPlaybackDataAddresses();
 
         // TODO: find a more robust method of detecting a gamestate message
-        if (len >= 10'000 || Mod::GetGameInterface()->GetDemoHeaderSize() + demoFileOffset == 9)
+        const auto messageHeaderSize = Mod::GetGameInterface()->GetDemoMessageHeaderSize();
+        if (len >= 10'000 || Mod::GetGameInterface()->GetDemoHeaderSize() + demoFileOffset == messageHeaderSize)
         {
             // first message with the gamestate; triggers the game to load a map
             if (initialGamestate != nullptr)
@@ -150,7 +154,7 @@ namespace IWXMVM::Components::Rewinding
         {
             // after gamestate before first snapshot
             initialGamestate = std::make_unique<InitialGamestate>();
-            initialGamestate->fileOffset = demoFileOffset - 9;
+            initialGamestate->fileOffset = demoFileOffset - messageHeaderSize;
             assert(initialGamestate->fileOffset > 0);
 
             initialGamestate->lastExecutedServerCommand =
@@ -239,7 +243,7 @@ namespace IWXMVM::Components::Rewinding
         LOG_DEBUG("Rewinding back {} ticks", ticks);
     }
 
-    int FS_Read(void* buffer, int len)
+    int FS_Read(void* buffer, int len, DemoReadKind kind)
     {
         if (filestreamState == FilestreamState::Uninitialized)
         {
@@ -264,16 +268,16 @@ namespace IWXMVM::Components::Rewinding
         if (filestreamState != FilestreamState::Initialized)
             return -1;
 
-        // only reset when the game has just requested the one byte message type
-        if (len == 1)
+        // only reset when the game has just started reading a new message
+        if (kind == DemoReadKind::MessageStart)
         {
             auto wouldReadDemoFooter = 
                 demoFileOffset + 
                 Mod::GetGameInterface()->GetDemoFooterSize() +
-                Mod::GetGameInterface()->GetDemoHeaderSize() + 9 >= demoFileSize;
+                Mod::GetGameInterface()->GetDemoHeaderSize() + Mod::GetGameInterface()->GetDemoMessageHeaderSize() >= demoFileSize;
             RestoreOldGamestate(wouldReadDemoFooter);
         }
-        else if (len > 12)
+        else if (kind == DemoReadKind::Payload)
         {
             // execute server commands here otherwise they may be lost when skipping forward a lot
             Mod::GetGameInterface()->ExecuteNewServerCommands();

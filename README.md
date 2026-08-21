@@ -19,12 +19,14 @@ All game implementations use signature scanning to support as many game individu
 | ------------------------------- | -------------- | -------------- |
 | Call of Duty 4: Modern Warfare  | Well supported     | Reference Implementation. Should also mostly work with cod4x and [iw3xo](https://github.com/xoxor4d/iw3xo-dev). |
 | Call of Duty: Modern Warfare 3  | Mostly functional  | Partial support for [Plutonium IW5](https://plutonium.pw/). |
+| Call of Duty 2                  | In development     | v1.3 only (`CoD2MP_s.exe`, hardcoded addresses). Works alongside [CoD2x](https://github.com/eyza-cod2/CoD2x). Kill markers on the timeline. No bone camera / DoF / filmtweaks yet. |
 
 The mod was built with [ReShade](https://reshade.me/) compatibility in mind, but some issues may remain.
 
 ## Requirements
-- Visual Studio 2022
-- DirectX SDK Jun10
+- Visual Studio 2022 (or newer)
+- DirectX SDK Jun10 is optional: when `DXSDK_DIR` is not set, the copy of Microsoft's
+  [Microsoft.DXSDK.D3DX](https://www.nuget.org/packages/Microsoft.DXSDK.D3DX) package under `core/third-party/d3dx` is used
 
 ## Building
 
@@ -33,6 +35,11 @@ First clone the repository:
 git clone --recursive https://github.com/reallyluckyy/IWXMVM.git
 ```
 Then build the included solution file using Visual Studio.
+
+### Call of Duty 2
+
+The CoD2 module (`iw2.dll`) is injected into the running game like the other modules; the game additionally
+needs the 32-bit `D3DCompiler_43.dll` next to `CoD2MP_s.exe` (available in `core/third-party/d3dx`).
 
 ## Contributing
 
@@ -48,3 +55,4 @@ The project is structured into the following sub-projects:
 - [`core`](core/) contains the core mod logic
 - [`iw3`](iw3/) contains game-specific bindings for creating the Call of Duty 4 version of the mod
 - [`iw5`](iw5/) contains game-specific bindings for creating the Modern Warfare 3 version of the mod
+- [`iw2`](iw2/) contains game-specific bindings for creating the Call of Duty 2 version of the mod

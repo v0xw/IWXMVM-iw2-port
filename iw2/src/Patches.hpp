@@ -17,6 +17,10 @@ namespace IWXMVM::IW2::Patches
         // drawer reads. int __cdecl(); patched out while the hints toggle is off.
         ReturnPatch CG_UpdateCursorHint{Addresses::CG_UpdateCursorHint, PatchApplySetting::Deferred};
 
+        // Draws the above-head sprites (team head icons) for every player entity in the snapshot.
+        // int __cdecl(); toggled by the teammate icons switch.
+        ReturnPatch CG_DrawPlayerSprites{Addresses::CG_DrawPlayerSprites, PatchApplySetting::Deferred};
+
         // CL_KeyEvent converts every key press during demo playback into ESCAPE (pops up the main menu).
         // NOP the "demo playing" branch so keys behave like in a normal game.
         NopPatch<2> CL_KeyEvent_DemoKeyToEscape{Addresses::CL_KeyEvent_DemoPlayingJump, PatchApplySetting::Immediately};

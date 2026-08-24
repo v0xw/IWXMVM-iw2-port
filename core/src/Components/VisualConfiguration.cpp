@@ -235,6 +235,8 @@ namespace IWXMVM::Components
                 visuals.hudInfo.showPlayersLeftAlive = value;
             else if (dvar == "iwxmvm_ui_showhints")
                 visuals.hudInfo.showHints = value;
+            else if (dvar == "iwxmvm_ui_showteammateicons")
+                visuals.hudInfo.showTeammateIcons = value;
             else if (dvar == "ui_hud_obituaries")
                 visuals.hudInfo.showKillfeed = value;
             else if (dvar == "g_teamcolor_allies")
@@ -316,6 +318,7 @@ namespace IWXMVM::Components
         out << "iwxmvm_ui_showtimer " << settings.hudInfo.showTimer << "\n";
         out << "iwxmvm_ui_showplayersleft " << settings.hudInfo.showPlayersLeftAlive << "\n";
         out << "iwxmvm_ui_showhints " << settings.hudInfo.showHints << "\n";
+        out << "iwxmvm_ui_showteammateicons " << settings.hudInfo.showTeammateIcons << "\n";
         out << "iwxmvm_ui_showothertext " << settings.hudInfo.showIconsAndText << "\n";
         out << "iwxmvm_ui_showbloodoverlay " << settings.hudInfo.showBloodOverlay << "\n";
         out << "ui_hud_obituaries " << settings.hudInfo.showKillfeed << "\n";

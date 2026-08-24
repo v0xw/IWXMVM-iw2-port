@@ -2,7 +2,6 @@
 
 namespace IWXMVM::IW2::Hooks::HUD
 {
-    extern bool showIconsAndText;
     extern bool showHitmarkers;
     extern bool showScore;
     extern bool showShellshock;
@@ -11,6 +10,7 @@ namespace IWXMVM::IW2::Hooks::HUD
     extern bool showTimer;
     extern bool showPlayersLeftAlive;
     extern bool showHints;
+    extern bool showTeammateIcons;
 
     void Install();
 

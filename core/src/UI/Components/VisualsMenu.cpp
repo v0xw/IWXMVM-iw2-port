@@ -206,12 +206,15 @@ namespace IWXMVM::UI
             ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
             modified = ImGui::Checkbox("##showScoreCheckbox", &visuals.hudInfo.showScore) || modified;
             
-            ImGui::AlignTextToFramePadding();
-            ImGui::Text("Show Icons and Text");
-            ImGui::SameLine();
-            ImGui::SetCursorPosX(checkboxColumnPosition);
-            ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
-            modified = ImGui::Checkbox("##showOtherTextCheckbox", &visuals.hudInfo.showIconsAndText) || modified;
+            if (!isIW2)  // covered by the granular IW2 toggles below
+            {
+                ImGui::AlignTextToFramePadding();
+                ImGui::Text("Show Icons and Text");
+                ImGui::SameLine();
+                ImGui::SetCursorPosX(checkboxColumnPosition);
+                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
+                modified = ImGui::Checkbox("##showOtherTextCheckbox", &visuals.hudInfo.showIconsAndText) || modified;
+            }
 
             ImGui::AlignTextToFramePadding();
             ImGui::Text("Show Blood Overlay");
@@ -258,6 +261,14 @@ namespace IWXMVM::UI
                 ImGui::SetCursorPosX(checkboxColumnPosition);
                 ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
                 modified = ImGui::Checkbox("##showHintsCheckbox", &visuals.hudInfo.showHints) || modified;
+
+                ImGui::AlignTextToFramePadding();
+                ImGui::Text("Show Teammate Icons");
+                ImGui::SameLine();
+                ImGui::SetCursorPosX(checkboxColumnPosition);
+                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
+                modified =
+                    ImGui::Checkbox("##showTeammateIconsCheckbox", &visuals.hudInfo.showTeammateIcons) || modified;
 
                 ImGui::AlignTextToFramePadding();
                 ImGui::Text("Show zPAM Text");

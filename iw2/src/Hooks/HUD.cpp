@@ -9,7 +9,6 @@
 
 namespace IWXMVM::IW2::Hooks::HUD
 {
-    bool showIconsAndText = true;
     bool showHitmarkers = true;
     bool showScore = true;
     bool showShellshock = true;
@@ -18,6 +17,7 @@ namespace IWXMVM::IW2::Hooks::HUD
     bool showTimer = true;
     bool showPlayersLeftAlive = true;
     bool showHints = true;
+    bool showTeammateIcons = true;
 
     // ---------------------------------------------------------------------------------------------------------
     // Scripted hudelem filtering.
@@ -109,7 +109,7 @@ namespace IWXMVM::IW2::Hooks::HUD
                 else if (IsScoreElem(elem))
                     visible = showScore;
                 else
-                    visible = showIconsAndText;
+                    visible = true;  // unclassified elements (e.g. zPAM's plant progress bar) always draw
 
                 if (!visible)
                 {
@@ -123,7 +123,7 @@ namespace IWXMVM::IW2::Hooks::HUD
         void MaskHiddenHudElems()
         {
             maskedCount = 0;
-            if (showIconsAndText && showHitmarkers && showScore && showTimer && showPlayersLeftAlive)
+            if (showHitmarkers && showScore && showTimer && showPlayersLeftAlive)
                 return;
 
             const auto snap = *Structures::At<uint8_t*>(Addresses::cg_nextSnap);

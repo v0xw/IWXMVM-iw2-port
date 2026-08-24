@@ -423,13 +423,14 @@ namespace IWXMVM::IW2
             hudInfo.showShellshock = Hooks::HUD::showShellshock;
             hudInfo.showCrosshair = GetDvarBool("cg_drawCrosshair");
             hudInfo.showScore = Hooks::HUD::showScore;
-            hudInfo.showIconsAndText = Hooks::HUD::showIconsAndText;
+            hudInfo.showIconsAndText = true;  // no IW2 toggle: unclassified hudelems always draw
             hudInfo.showHitmarkers = Hooks::HUD::showHitmarkers;
             hudInfo.showKilledByMessages = Hooks::HUD::showKilledByMessages;
             hudInfo.showModText = Hooks::HUD::showModText;
             hudInfo.showTimer = Hooks::HUD::showTimer;
             hudInfo.showPlayersLeftAlive = Hooks::HUD::showPlayersLeftAlive;
             hudInfo.showHints = Hooks::HUD::showHints;
+            hudInfo.showTeammateIcons = Hooks::HUD::showTeammateIcons;
             hudInfo.showBloodOverlay = !Patches::GetGamePatches().CG_DrawDamageBlend.IsApplied();
             hudInfo.showKillfeed = GetDvarBool("cg_drawGameMessages");
             hudInfo.killfeedTeam1Color = ReadVec3Dvar("g_TeamColor_Allies", glm::vec3(0.5f, 0.5f, 1.0f));
@@ -444,7 +445,6 @@ namespace IWXMVM::IW2
             {
                 hudInfo.showPlayerHUD = false;
                 hudInfo.showCrosshair = false;
-                hudInfo.showIconsAndText = false;
                 hudInfo.showKillfeed = false;
             }
 
@@ -466,7 +466,6 @@ namespace IWXMVM::IW2
                 Patches::GetGamePatches().CG_DrawDamageBlend.Apply();
             SetDvarBool("cg_drawGameMessages", hudInfo.showKillfeed);
 
-            Hooks::HUD::showIconsAndText = hudInfo.showIconsAndText;
             Hooks::HUD::showHitmarkers = hudInfo.showHitmarkers;
             Hooks::HUD::showScore = hudInfo.showScore;
             Hooks::HUD::showShellshock = hudInfo.showShellshock;
@@ -475,6 +474,11 @@ namespace IWXMVM::IW2
             Hooks::HUD::showTimer = hudInfo.showTimer;
             Hooks::HUD::showPlayersLeftAlive = hudInfo.showPlayersLeftAlive;
             Hooks::HUD::showHints = hudInfo.showHints;
+            Hooks::HUD::showTeammateIcons = hudInfo.showTeammateIcons;
+            if (hudInfo.showTeammateIcons)
+                Patches::GetGamePatches().CG_DrawPlayerSprites.Revert();
+            else
+                Patches::GetGamePatches().CG_DrawPlayerSprites.Apply();
 
             WriteVec3Dvar("g_TeamColor_Allies", hudInfo.killfeedTeam1Color);
             WriteVec3Dvar("g_TeamColor_Axis", hudInfo.killfeedTeam2Color);

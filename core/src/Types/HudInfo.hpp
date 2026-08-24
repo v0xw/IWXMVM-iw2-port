@@ -25,5 +25,6 @@ namespace IWXMVM::Types
         bool showTimer = true;     // the round timer
         bool showPlayersLeftAlive = true;  // zPAM's players-left counters at the bottom
         bool showHints = true;             // cursor hints: weapon pickup, use / plant prompts, mantle
+        bool showTeammateIcons = true;     // the team icon above teammates' heads
     };
 }  // namespace IWXMVM::Types

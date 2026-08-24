@@ -78,6 +78,10 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>core.lib;d3dx9.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>if not exist "$(OutDir)D3DCompiler_43.dll" copy /Y "$(D3DXRedistDir)\D3DCompiler_43.dll" "$(OutDir)"</Command>
+      <Message>Staging D3DCompiler_43.dll next to iw2.dll (preloaded from there at runtime)</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -103,6 +107,10 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>core.lib;d3dx9.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>if not exist "$(OutDir)D3DCompiler_43.dll" copy /Y "$(D3DXRedistDir)\D3DCompiler_43.dll" "$(OutDir)"</Command>
+      <Message>Staging D3DCompiler_43.dll next to iw2.dll (preloaded from there at runtime)</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ProjectReference Include="..\core\core.vcxproj">

@@ -7,23 +7,22 @@
 </div>
 
 ## About
-An eternally in-development recording mod for multiple Call of Duty games, featuring keyframeable campaths, a fully rewindable video editor-like timeline and built-in ProRes video capturing support.
 
-![iwxmvmscreenshot](https://github.com/reallyluckyy/IWXMVM/assets/7430330/9680c479-1ed3-4690-9c29-b99f4b1b392b)
+A port of [IWXMVM](https://github.com/reallyluckyy/IWXMVM) to **Call of Duty 2** (2005): a recording mod
+featuring keyframeable campaths, a fully rewindable video editor-like timeline, kill markers detected at
+demo load time, a bone camera and built-in ProRes video capturing support.
 
-## Supported Games
+This repository contains IWXMVM's game-agnostic core together with the CoD2 game module. It is not part
+of upstream IWXMVM; see [Credits](#credits).
 
-All game implementations use signature scanning to support as many game individual game versions as possible. Usually, the latest Steam version should work, if nothing else is specified in the table below.
+## Supported Game
 
-| Game                            | Status         | Notes          |
-| ------------------------------- | -------------- | -------------- |
-| Call of Duty 4: Modern Warfare  | Well supported     | Reference Implementation. Should also mostly work with cod4x and [iw3xo](https://github.com/xoxor4d/iw3xo-dev). |
-| Call of Duty: Modern Warfare 3  | Mostly functional  | Partial support for [Plutonium IW5](https://plutonium.pw/). |
-| Call of Duty 2                  | In development     | v1.3 only (`CoD2MP_s.exe`, hardcoded addresses). Works alongside [CoD2x](https://github.com/eyza-cod2/CoD2x). Kill markers on the timeline. No bone camera / DoF / filmtweaks yet. |
-
-The mod was built with [ReShade](https://reshade.me/) compatibility in mind, but some issues may remain.
+| Game          | Notes |
+| ------------- | ----- |
+| Call of Duty 2 Multiplayer | v1.3 only (`CoD2MP_s.exe`, hardcoded addresses, `.dm_1` demos). Works alongside [CoD2x](https://github.com/eyza-cod2/CoD2x). |
 
 ## Requirements
+
 - Visual Studio 2022 (or newer)
 - DirectX SDK Jun10 is optional: when `DXSDK_DIR` is not set, the copy of Microsoft's
   [Microsoft.DXSDK.D3DX](https://www.nuget.org/packages/Microsoft.DXSDK.D3DX) package under `core/third-party/d3dx` is used
@@ -32,27 +31,33 @@ The mod was built with [ReShade](https://reshade.me/) compatibility in mind, but
 
 First clone the repository:
 ```
-git clone --recursive https://github.com/reallyluckyy/IWXMVM.git
+git clone --recursive https://github.com/v0xw/IWXMVM-iw2-port.git
 ```
 Then build the included solution file using Visual Studio.
 
-### Call of Duty 2
+## Running
 
-The CoD2 module (`iw2.dll`) is injected into the running game like the other modules; the game additionally
-needs the 32-bit `D3DCompiler_43.dll` next to `CoD2MP_s.exe` (available in `core/third-party/d3dx`).
+Start the game and inject `iw2.dll` (from `iw2\bin\Win32\Release\`) with the injector of your choice, or
+use the included development launcher, which starts the game and injects in one step:
 
-## Contributing
+```
+iw2launcher\bin\Win32\Release\iw2launcher.exe --launch --windowed 1920x1080
+```
 
-If you like the project and want to help out, feel free to submit a pull request!
-You can either look at the [issues page](https://github.com/reallyluckyy/IWXMVM/issues) for what still needs to be done from our perspective or just bring your own ideas.
-Theres also a bunch of TODOs littered throughout the codebase, which need attention at some point.
-
-There are no style or structure guidelines yet so please just refer to the already existing code.
+Nothing needs to be copied into the game installation: the launcher injects the DLL straight from the
+build output, and `iw2.dll` loads `D3DCompiler_43.dll` from its own directory (staged there by the build).
 
 ## Project Structure
 
 The project is structured into the following sub-projects:
-- [`core`](core/) contains the core mod logic
-- [`iw3`](iw3/) contains game-specific bindings for creating the Call of Duty 4 version of the mod
-- [`iw5`](iw5/) contains game-specific bindings for creating the Modern Warfare 3 version of the mod
-- [`iw2`](iw2/) contains game-specific bindings for creating the Call of Duty 2 version of the mod
+- [`core`](core/) contains the core mod logic (from upstream IWXMVM, with generic additions)
+- [`iw2`](iw2/) contains the game-specific bindings for Call of Duty 2
+- [`iw2launcher`](iw2launcher/) is a small development launcher/injector for CoD2
+
+## Credits
+
+- [IWXMVM](https://github.com/reallyluckyy/IWXMVM) by reallyluckyy and contributors - this project is
+  built on IWXMVM's core and modeled on its CoD4/MW3 game modules. Core changes are kept generic and
+  compatible with the upstream modules.
+- [CoD2x](https://github.com/eyza-cod2/CoD2x) - the reverse-engineered symbol tables and struct layouts
+  of the 1.3 binaries were invaluable for the CoD2 module.

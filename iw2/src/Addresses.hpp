@@ -31,6 +31,7 @@ namespace IWXMVM::IW2::Addresses
     constexpr uintptr_t SCR_UpdateFrame = 0x00414B20;  // no args (returns GetCurrentThreadId); renders one frame
 
     constexpr uintptr_t FS_Read = 0x00422EC0;  // int __cdecl(void* buffer, int len, int handle)
+    constexpr uintptr_t FS_PureServerSetLoadedIwds = 0x0043C550;  // __thiscall(const char* checksums <ecx>, const char* names)
     constexpr uintptr_t FS_FOpenFileRead = 0x00422700;
     constexpr uintptr_t FS_FCloseFile = 0x00421FD0;
     constexpr uintptr_t FS_FileExists = 0x00421EA0;

@@ -147,6 +147,29 @@ namespace IWXMVM::IW2::Hooks::Playback
     }
 
     // ---------------------------------------------------------------------------------------------------------
+    // FS_PureServerSetLoadedIwds: the demo's gamestate carries the pure-server IWD checksum list of whatever
+    // files the recording server ran. Applying it locks local IWDs with different checksums out of the search
+    // path, and demos then fail to load maps the viewer actually has (e.g. a different zPAM map pack version).
+    // A demo viewer wants local files always usable, so the restriction is cleared during demo playback.
+    // ---------------------------------------------------------------------------------------------------------
+
+    // __thiscall: checksum string in ECX, name string on the stack; modelled as __fastcall with a dummy EDX
+    typedef void(__fastcall* FS_PureServerSetLoadedIwds_t)(const char* checksums, void* unused, const char* names);
+    FS_PureServerSetLoadedIwds_t FS_PureServerSetLoadedIwds_Trampoline = nullptr;
+
+    void __fastcall FS_PureServerSetLoadedIwds_Hook(const char* checksums, void* unused, const char* names)
+    {
+        if (IsDemoPlaying())
+        {
+            LOG_DEBUG("Ignoring pure server IWD restrictions during demo playback");
+            FS_PureServerSetLoadedIwds_Trampoline("", unused, "");
+            return;
+        }
+
+        FS_PureServerSetLoadedIwds_Trampoline(checksums, unused, names);
+    }
+
+    // ---------------------------------------------------------------------------------------------------------
     // SCR_UpdateFrame: skip rendering entirely while the game window is minimized (fullscreen CoD2 already does
     // this, windowed does not). Rendering into a minimized window eventually loses the D3D device, and the
     // renderer's silent device recreation executes a frame that still references freed frontend data - observed
@@ -342,6 +365,10 @@ namespace IWXMVM::IW2::Hooks::Playback
 
         HookManager::CreateHook(Addresses::SCR_UpdateFrame, reinterpret_cast<uintptr_t>(SCR_UpdateFrame_Hook),
                                 reinterpret_cast<uintptr_t*>(&SCR_UpdateFrame_Trampoline));
+
+        HookManager::CreateHook(Addresses::FS_PureServerSetLoadedIwds,
+                                reinterpret_cast<uintptr_t>(FS_PureServerSetLoadedIwds_Hook),
+                                reinterpret_cast<uintptr_t*>(&FS_PureServerSetLoadedIwds_Trampoline));
 
         HookManager::CreateHook(Addresses::FS_Read, reinterpret_cast<uintptr_t>(FS_Read_Hook),
                                 reinterpret_cast<uintptr_t*>(&FS_Read_Trampoline));

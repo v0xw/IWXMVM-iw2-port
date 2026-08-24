@@ -17,6 +17,10 @@ namespace IWXMVM::IW2::Hooks::HUD
     extern bool showCrosshair;
     extern bool show2DElements;
     extern bool showKillfeed;
+    extern bool showKillfeedKills;
+    extern bool showKillfeedBombEvents;
+    extern bool showKillfeedOtherInfo;
+    extern bool showKillfeedModMessages;
 
     void Install();
 

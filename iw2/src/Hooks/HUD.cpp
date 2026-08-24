@@ -26,6 +26,10 @@ namespace IWXMVM::IW2::Hooks::HUD
     bool showCrosshair = false;
     bool show2DElements = true;
     bool showKillfeed = true;
+    bool showKillfeedKills = true;
+    bool showKillfeedBombEvents = true;
+    bool showKillfeedOtherInfo = false;
+    bool showKillfeedModMessages = false;
 
     // ---------------------------------------------------------------------------------------------------------
     // Scripted hudelem filtering.
@@ -269,9 +273,71 @@ namespace IWXMVM::IW2::Hooks::HUD
         *Structures::At<int>(Addresses::cg_cursorHintString) = 0;
     }
 
+    // ---------------------------------------------------------------------------------------------------------
+    // Killfeed text classification. Plain text lines ("game message" server commands: bomb events, connects,
+    // round outcomes, mod prints) all funnel through CG_AddGameMessage. The raw server command argument still
+    // holds the untranslated string with the localized string key names, which classify language-independently;
+    // the translated text is checked as a fallback for plain strings.
+    // ---------------------------------------------------------------------------------------------------------
+
+    static int __cdecl ShouldShowGameMessage(const char* text)
+    {
+        if (!Structures::IsDemoPlaying())
+            return 1;
+
+        const auto raw = *reinterpret_cast<const char* const*>(Addresses::cmd_argv + sizeof(char*));
+
+        const auto matchesAny = [&](std::initializer_list<const char*> keys) {
+            for (const auto key : keys)
+            {
+                if (raw && std::strstr(raw, key))
+                    return true;
+                if (text && std::strstr(text, key))
+                    return true;
+            }
+            return false;
+        };
+
+        if (matchesAny({"MP_EXPLOSIVESPLANTED", "MP_EXPLOSIVESDEFUSED"}))
+            return showKillfeedBombEvents ? 1 : 0;
+
+        if (matchesAny({"MP_CONNECTED", "MP_DISCONNECTED", "MP_JOINED", "MP_SWITCHING", "MP_RENAMED",
+                        "ELIMINATED", "ACCOMPLISHED", "MP_ROUNDDRAW", "MP_TIMEHASEXPIRED", "MP_TIME_LIMIT_REACHED",
+                        "MP_FRIENDLY_FIRE"}))
+            return showKillfeedOtherInfo ? 1 : 0;
+
+        return showKillfeedModMessages ? 1 : 0;
+    }
+
+    uintptr_t CG_AddGameMessage_Trampoline = 0;
+    static const char* gameMessageText = nullptr;
+    static int gameMessageShow = 1;
+
+    void __declspec(naked) CG_AddGameMessage_Hook()
+    {
+        __asm
+        {
+            mov gameMessageText, ecx
+            pushad
+            push gameMessageText
+            call ShouldShowGameMessage
+            add esp, 4
+            mov gameMessageShow, eax
+            popad
+            cmp gameMessageShow, 0
+            je skip
+            jmp CG_AddGameMessage_Trampoline
+        skip:
+            ret
+        }
+    }
+
     void Install()
     {
         HookManager::CreateHook(Addresses::CG_Draw2D, reinterpret_cast<uintptr_t>(CG_Draw2D_Hook),
                                 reinterpret_cast<uintptr_t*>(&CG_Draw2D_Trampoline));
+
+        HookManager::CreateHook(Addresses::CG_AddGameMessage, reinterpret_cast<uintptr_t>(CG_AddGameMessage_Hook),
+                                &CG_AddGameMessage_Trampoline);
     }
 }  // namespace IWXMVM::IW2::Hooks::HUD

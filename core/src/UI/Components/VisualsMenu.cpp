@@ -315,6 +315,48 @@ namespace IWXMVM::UI
             ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
             modified = ImGui::Checkbox("##showKillfeedCheckbox", &visuals.hudInfo.showKillfeed) || modified;
 
+            if (isIW2 && visuals.hudInfo.showKillfeed)
+            {
+                ImGui::Indent();
+
+                ImGui::AlignTextToFramePadding();
+                ImGui::Text("Show Kills");
+                ImGui::SameLine();
+                ImGui::SetCursorPosX(checkboxColumnPosition);
+                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
+                modified =
+                    ImGui::Checkbox("##showKillfeedKillsCheckbox", &visuals.hudInfo.showKillfeedKills) || modified;
+
+                ImGui::AlignTextToFramePadding();
+                ImGui::Text("Show Bomb Plants");
+                ImGui::SameLine();
+                ImGui::SetCursorPosX(checkboxColumnPosition);
+                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
+                modified = ImGui::Checkbox("##showKillfeedBombCheckbox", &visuals.hudInfo.showKillfeedBombEvents) ||
+                           modified;
+
+                ImGui::AlignTextToFramePadding();
+                ImGui::Text("Show Other Info");
+                ImGui::SameLine();
+                ImGui::SetCursorPosX(checkboxColumnPosition);
+                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
+                modified = ImGui::Checkbox("##showKillfeedOtherCheckbox", &visuals.hudInfo.showKillfeedOtherInfo) ||
+                           modified;
+
+                const bool isModDemoKillfeed = !Mod::GetGameInterface()->GetDemoModName().empty();
+                ImGui::BeginDisabled(!isModDemoKillfeed);
+                ImGui::AlignTextToFramePadding();
+                ImGui::Text("Show zPAM Messages");
+                ImGui::SameLine();
+                ImGui::SetCursorPosX(checkboxColumnPosition);
+                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
+                modified = ImGui::Checkbox("##showKillfeedModCheckbox", &visuals.hudInfo.showKillfeedModMessages) ||
+                           modified;
+                ImGui::EndDisabled();
+
+                ImGui::Unindent();
+            }
+
             ImGui::AlignTextToFramePadding();
             ImGui::Text("Team 1 Color");
             ImGui::SameLine();

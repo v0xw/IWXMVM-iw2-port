@@ -241,6 +241,14 @@ namespace IWXMVM::Components
                 visuals.hudInfo.showChat = value;
             else if (dvar == "iwxmvm_ui_showbombtimer")
                 visuals.hudInfo.showBombTimer = value;
+            else if (dvar == "iwxmvm_ui_showkillfeedkills")
+                visuals.hudInfo.showKillfeedKills = value;
+            else if (dvar == "iwxmvm_ui_showkillfeedbomb")
+                visuals.hudInfo.showKillfeedBombEvents = value;
+            else if (dvar == "iwxmvm_ui_showkillfeedother")
+                visuals.hudInfo.showKillfeedOtherInfo = value;
+            else if (dvar == "iwxmvm_ui_showkillfeedmod")
+                visuals.hudInfo.showKillfeedModMessages = value;
             else if (dvar == "ui_hud_obituaries")
                 visuals.hudInfo.showKillfeed = value;
             else if (dvar == "g_teamcolor_allies")
@@ -325,6 +333,10 @@ namespace IWXMVM::Components
         out << "iwxmvm_ui_showteammateicons " << settings.hudInfo.showTeammateIcons << "\n";
         out << "iwxmvm_ui_showchat " << settings.hudInfo.showChat << "\n";
         out << "iwxmvm_ui_showbombtimer " << settings.hudInfo.showBombTimer << "\n";
+        out << "iwxmvm_ui_showkillfeedkills " << settings.hudInfo.showKillfeedKills << "\n";
+        out << "iwxmvm_ui_showkillfeedbomb " << settings.hudInfo.showKillfeedBombEvents << "\n";
+        out << "iwxmvm_ui_showkillfeedother " << settings.hudInfo.showKillfeedOtherInfo << "\n";
+        out << "iwxmvm_ui_showkillfeedmod " << settings.hudInfo.showKillfeedModMessages << "\n";
         out << "iwxmvm_ui_showothertext " << settings.hudInfo.showIconsAndText << "\n";
         out << "iwxmvm_ui_showbloodoverlay " << settings.hudInfo.showBloodOverlay << "\n";
         out << "ui_hud_obituaries " << settings.hudInfo.showKillfeed << "\n";

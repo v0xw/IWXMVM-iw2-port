@@ -24,6 +24,10 @@ namespace IWXMVM::IW2::Patches
         // Draws the chat message lines. void __cdecl(); toggled by the chat switch.
         ReturnPatch CG_DrawChatMessages{Addresses::CG_DrawChatMessages, PatchApplySetting::Deferred};
 
+        // Adds the obituary line to the killfeed (caller cleans the stack, so a plain ret skips it safely).
+        // Toggled by the killfeed kills switch.
+        ReturnPatch CG_AddObituaryMessage{Addresses::CG_AddObituaryMessage, PatchApplySetting::Deferred};
+
         // CL_KeyEvent converts every key press during demo playback into ESCAPE (pops up the main menu).
         // NOP the "demo playing" branch so keys behave like in a normal game.
         NopPatch<2> CL_KeyEvent_DemoKeyToEscape{Addresses::CL_KeyEvent_DemoPlayingJump, PatchApplySetting::Immediately};

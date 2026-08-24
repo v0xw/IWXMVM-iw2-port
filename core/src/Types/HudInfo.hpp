@@ -28,5 +28,11 @@ namespace IWXMVM::Types
         bool showTeammateIcons = true;     // the team icon above teammates' heads
         bool showChat = true;              // player chat messages
         bool showBombTimer = true;         // the bomb stopwatch in the top left
+
+        // killfeed sub-categories (apply while showKillfeed is on)
+        bool showKillfeedKills = true;        // the obituary lines
+        bool showKillfeedBombEvents = true;   // explosives planted / defused
+        bool showKillfeedOtherInfo = true;    // connects, disconnects, team joins, round outcomes
+        bool showKillfeedModMessages = true;  // everything the mod prints (zPAM damage report etc.)
     };
 }  // namespace IWXMVM::Types

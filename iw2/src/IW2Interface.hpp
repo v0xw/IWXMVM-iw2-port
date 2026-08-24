@@ -453,6 +453,10 @@ namespace IWXMVM::IW2
             hudInfo.showTeammateIcons = Hooks::HUD::showTeammateIcons;
             hudInfo.showChat = Hooks::HUD::showChat;
             hudInfo.showBombTimer = Hooks::HUD::showBombTimer;
+            hudInfo.showKillfeedKills = Hooks::HUD::showKillfeedKills;
+            hudInfo.showKillfeedBombEvents = Hooks::HUD::showKillfeedBombEvents;
+            hudInfo.showKillfeedOtherInfo = Hooks::HUD::showKillfeedOtherInfo;
+            hudInfo.showKillfeedModMessages = Hooks::HUD::showKillfeedModMessages;
             hudInfo.showBloodOverlay = !Patches::GetGamePatches().CG_DrawDamageBlend.IsApplied();
             hudInfo.showKillfeed = Hooks::HUD::showKillfeed;
             hudInfo.killfeedTeam1Color = ReadVec3Dvar("g_TeamColor_Allies", glm::vec3(0.5f, 0.5f, 1.0f));
@@ -516,6 +520,15 @@ namespace IWXMVM::IW2
                 Patches::GetGamePatches().CG_DrawChatMessages.Apply();
 
             Hooks::HUD::showBombTimer = hudInfo.showBombTimer;
+
+            Hooks::HUD::showKillfeedKills = hudInfo.showKillfeedKills;
+            Hooks::HUD::showKillfeedBombEvents = hudInfo.showKillfeedBombEvents;
+            Hooks::HUD::showKillfeedOtherInfo = hudInfo.showKillfeedOtherInfo;
+            Hooks::HUD::showKillfeedModMessages = hudInfo.showKillfeedModMessages;
+            if (hudInfo.showKillfeedKills)
+                Patches::GetGamePatches().CG_AddObituaryMessage.Revert();
+            else
+                Patches::GetGamePatches().CG_AddObituaryMessage.Apply();
 
             WriteVec3Dvar("g_TeamColor_Allies", hudInfo.killfeedTeam1Color);
             WriteVec3Dvar("g_TeamColor_Axis", hudInfo.killfeedTeam2Color);

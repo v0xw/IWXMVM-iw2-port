@@ -100,11 +100,12 @@ namespace
         if (!explicitPath.empty())
             candidates.push_back(explicitPath);
 
-        candidates.push_back(GetLauncherDirectory() / DLL_NAME);
+        const auto launcherDir = GetLauncherDirectory();
+        candidates.push_back(launcherDir / DLL_NAME);
 
-        const auto gameDir = FindGameDirectory();
-        if (!gameDir.empty())
-            candidates.push_back(gameDir / L"IWXMVM" / DLL_NAME);
+        // running from the repository build tree: iw2launcher\bin\Win32\Release -> iw2\bin\Win32\Release
+        candidates.push_back(launcherDir / L".." / L".." / L".." / L".." / L"iw2" / L"bin" / L"Win32" / L"Release" /
+                             DLL_NAME);
 
         for (const auto& candidate : candidates)
         {
@@ -368,7 +369,7 @@ int Run(int argc, wchar_t* argv[])
     const auto dllPath = FindDll(dllArgument);
     if (dllPath.empty())
     {
-        std::printf("Could not find %ls. Put it next to the launcher, into <game>\\IWXMVM\\, or pass its path.\n", DLL_NAME);
+        std::printf("Could not find %ls. Put it next to the launcher or pass its path.\n", DLL_NAME);
         return 1;
     }
     std::printf("Using %ls\n", dllPath.c_str());

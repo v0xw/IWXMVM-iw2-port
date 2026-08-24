@@ -494,15 +494,65 @@ namespace IWXMVM::IW2
 
         Types::BoneData GetBoneData(int32_t entityId, const std::string& name) final
         {
-            // TODO: bone camera support via CG_DObjGetWorldTagMatrix / Com_GetClientDObj
-            (void)entityId;
-            (void)name;
-            return Types::BoneData{.id = -1};
+            if (entityId < 0 || entityId >= static_cast<int32_t>(Addresses::cg_entities_count) ||
+                *reinterpret_cast<int*>(Addresses::cls_cgameStarted) == 0)
+            {
+                return Types::BoneData{.id = -1};
+            }
+
+            const auto tagName = Functions::SL_FindString(name);
+            if (tagName == 0)
+            {
+                return Types::BoneData{.id = -1};
+            }
+
+            const auto dobj = Functions::Com_GetClientDObj(entityId);
+            if (dobj == nullptr)
+            {
+                return Types::BoneData{.id = -1};
+            }
+
+            const auto boneIndex = Functions::DObjGetBoneIndex(dobj, tagName);
+            if (boneIndex < 0)
+            {
+                return Types::BoneData{.id = -1};
+            }
+
+            const auto entity = &Structures::GetEntities()[entityId];
+            float axis[3][3];
+            float origin[3];
+            if (!Functions::CG_DObjGetWorldTagMatrix(tagName, dobj, entity, axis) ||
+                !Functions::CG_DObjGetWorldTagPos(tagName, dobj, entity, origin))
+            {
+                return Types::BoneData{.id = -1};
+            }
+
+            Types::BoneData boneData;
+            boneData.id = boneIndex;
+            boneData.position = glm::make_vec3(origin);
+            boneData.rotation = glm::make_mat3(&axis[0][0]);
+            return boneData;
         }
 
         constexpr std::vector<std::string> GetSupportedBoneNames() final
         {
-            return {"tag_weapon", "j_head", "tag_origin"};
+            // scriptstring lookups are case-sensitive; these names appear in the game executable itself,
+            // matching the casing used by the stock CoD2 skeletons. Bones a model doesn't have simply
+            // resolve to id -1.
+            return {
+                "tag_weapon",
+                "tag_weapon_left",
+                "tag_weapon_right",
+                "tag_flash",
+                "tag_brass",
+                "j_head",
+                "J_Spine4",
+                "pelvis",
+                "torso_upper",
+                "torso_lower",
+                "tag_camera",
+                "tag_origin",
+            };
         }
 
         // ----------------------------------------------------------------------------------------------------

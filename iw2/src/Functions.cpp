@@ -238,6 +238,127 @@ namespace IWXMVM::IW2::Functions
         }
     }
 
+    uint16_t SL_FindString(std::string_view name)
+    {
+        // only finds already-interned strings (never allocates); every bone name of a loaded model is interned,
+        // so 0 simply means "no loaded model has such a bone". The comparison is byte-exact, so case matters
+        // (CoD2 skeletons mix cases, e.g. "j_head" but "J_Spine4").
+        typedef int(__cdecl * SL_FindStringOfLen_t)(const char* str, unsigned int lengthIncludingNull);
+        static const auto SL_FindStringOfLen = reinterpret_cast<SL_FindStringOfLen_t>(Addresses::SL_FindStringOfLen);
+
+        char buffer[64];
+        const auto length = std::min(name.size(), sizeof(buffer) - 1);
+        std::memcpy(buffer, name.data(), length);
+        buffer[length] = '\0';
+
+        return static_cast<uint16_t>(SL_FindStringOfLen(buffer, static_cast<unsigned int>(length) + 1));
+    }
+
+    void* Com_GetClientDObj(int entityNum)
+    {
+        // __usercall: localClientNum (always 0) in EAX, entity number in ECX; returns the DObj* in EAX (or null)
+        const auto address = Addresses::Com_GetClientDObj;
+        void* result = nullptr;
+
+        __asm
+        {
+            push ebx
+            push esi
+            push edi
+            xor eax, eax
+            mov ecx, entityNum
+            call address
+            mov result, eax
+            pop edi
+            pop esi
+            pop ebx
+        }
+
+        return result;
+    }
+
+    int DObjGetBoneIndex(void* dobj, uint16_t tagName)
+    {
+        // __usercall: DObj* in EAX, tag (scriptstring handle) on the stack (caller cleans up); bone index or < 0
+        const auto address = Addresses::DObjGetBoneIndex;
+        const unsigned int tag = tagName;
+        int result = -1;
+
+        __asm
+        {
+            push ebx
+            push esi
+            push edi
+            push tag
+            mov eax, dobj
+            call address
+            add esp, 4
+            mov result, eax
+            pop edi
+            pop esi
+            pop ebx
+        }
+
+        return result;
+    }
+
+    bool CG_DObjGetWorldTagMatrix(uint16_t tagName, void* dobj, centity_t* entity, float axis[3][3])
+    {
+        // __usercall: tag in EAX, DObj* in ECX; stack: centity*, axis out (caller cleans up); returns bool.
+        // Computes the bone pose on demand (skel create / DObjCalcAnim / CG_DoControllers / DObjCalcSkel), so it
+        // is safe to call outside the game's own draw path.
+        const auto address = Addresses::CG_DObjGetWorldTagMatrix;
+        const unsigned int tag = tagName;
+        float* axisPtr = &axis[0][0];
+        int result = 0;
+
+        __asm
+        {
+            push ebx
+            push esi
+            push edi
+            push axisPtr
+            push entity
+            mov eax, tag
+            mov ecx, dobj
+            call address
+            add esp, 8
+            mov result, eax
+            pop edi
+            pop esi
+            pop ebx
+        }
+
+        return result != 0;
+    }
+
+    bool CG_DObjGetWorldTagPos(uint16_t tagName, void* dobj, centity_t* entity, float pos[3])
+    {
+        // __usercall: tag in EAX, DObj* in ECX; stack: centity*, position out (caller cleans up); returns bool
+        const auto address = Addresses::CG_DObjGetWorldTagPos;
+        const unsigned int tag = tagName;
+        int result = 0;
+
+        __asm
+        {
+            push ebx
+            push esi
+            push edi
+            push pos
+            push entity
+            mov eax, tag
+            mov ecx, dobj
+            call address
+            add esp, 8
+            mov result, eax
+            pop edi
+            pop esi
+            pop ebx
+        }
+
+        return result != 0;
+    }
+
     std::filesystem::path GetGameDirectory()
     {
         const auto fs_homepath = FindDvar("fs_homepath");

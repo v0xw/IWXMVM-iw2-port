@@ -36,6 +36,13 @@ namespace IWXMVM::IW2::Functions
     // math
     void AnglesToAxis(const float* angles, float axis[3][3]);
 
+    // bone camera
+    uint16_t SL_FindString(std::string_view name);  // scriptstring handle, 0 if the string was never interned (case-sensitive)
+    void* Com_GetClientDObj(int entityNum);
+    int DObjGetBoneIndex(void* dobj, uint16_t tagName);
+    bool CG_DObjGetWorldTagMatrix(uint16_t tagName, void* dobj, Structures::centity_t* entity, float axis[3][3]);
+    bool CG_DObjGetWorldTagPos(uint16_t tagName, void* dobj, Structures::centity_t* entity, float pos[3]);
+
     // filesystem helpers
     std::filesystem::path GetGameDirectory();   // fs_homepath (falls back to the exe directory)
     std::string GetGameDirName();               // fs_game or "main"

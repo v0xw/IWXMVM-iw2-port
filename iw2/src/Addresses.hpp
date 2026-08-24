@@ -83,10 +83,12 @@ namespace IWXMVM::IW2::Addresses
     constexpr uintptr_t CG_ServerCommand = 0x004D1B80;
     constexpr uintptr_t CL_GetServerCommand = 0x00401710;
 
-    constexpr uintptr_t CG_DObjGetWorldTagMatrix = 0x004CCD40;
-    constexpr uintptr_t CG_DObjGetWorldTagPos = 0x004CCE70;
-    constexpr uintptr_t Com_GetClientDObj = 0x004356B0;
-    constexpr uintptr_t DObjGetBoneIndex = 0x00486D00;
+    // bone camera (__usercall; the caller cleans up all stack arguments)
+    constexpr uintptr_t CG_DObjGetWorldTagMatrix = 0x004CCD40;  // tag in EAX, DObj* in ECX; stack: centity*, float axis[3][3] out; returns bool
+    constexpr uintptr_t CG_DObjGetWorldTagPos = 0x004CCE70;     // tag in EAX, DObj* in ECX; stack: centity*, float pos[3] out; returns bool
+    constexpr uintptr_t Com_GetClientDObj = 0x004356B0;         // localClientNum (0) in EAX, entity number in ECX; returns DObj* in EAX or null
+    constexpr uintptr_t DObjGetBoneIndex = 0x00486D00;          // DObj* in EAX; stack: tag; returns the bone index or < 0
+    constexpr uintptr_t SL_FindStringOfLen = 0x004772D0;        // int __cdecl(const char* str, unsigned int lengthIncludingNull); scriptstring handle, 0 if never interned (byte-exact comparison, so case matters)
 
     constexpr uintptr_t Mouse_GetMovement = 0x004649C0;
     constexpr uintptr_t Mouse_Loop = 0x00464B30;

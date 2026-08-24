@@ -15,6 +15,8 @@ namespace IWXMVM::IW2::Hooks::HUD
     extern bool showBombTimer;
     extern bool showPlayerHUD;
     extern bool showCrosshair;
+    extern bool show2DElements;
+    extern bool showKillfeed;
 
     void Install();
 

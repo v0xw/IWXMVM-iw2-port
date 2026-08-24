@@ -225,12 +225,17 @@ namespace IWXMVM::UI
 
             if (isIW2)
             {
+                // grey out options for elements only mod demos contain
+                const bool isModDemo = !Mod::GetGameInterface()->GetDemoModName().empty();
+
+                ImGui::BeginDisabled(!isModDemo);
                 ImGui::AlignTextToFramePadding();
                 ImGui::Text("Show Hitmarkers");
                 ImGui::SameLine();
                 ImGui::SetCursorPosX(checkboxColumnPosition);
                 ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
                 modified = ImGui::Checkbox("##showHitmarkersCheckbox", &visuals.hudInfo.showHitmarkers) || modified;
+                ImGui::EndDisabled();
 
                 ImGui::AlignTextToFramePadding();
                 ImGui::Text("Show Killed-by Text");
@@ -247,6 +252,7 @@ namespace IWXMVM::UI
                 ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
                 modified = ImGui::Checkbox("##showTimerCheckbox", &visuals.hudInfo.showTimer) || modified;
 
+                ImGui::BeginDisabled(!isModDemo);
                 ImGui::AlignTextToFramePadding();
                 ImGui::Text("Show Players Left Alive");
                 ImGui::SameLine();
@@ -254,6 +260,7 @@ namespace IWXMVM::UI
                 ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
                 modified =
                     ImGui::Checkbox("##showPlayersLeftCheckbox", &visuals.hudInfo.showPlayersLeftAlive) || modified;
+                ImGui::EndDisabled();
 
                 ImGui::AlignTextToFramePadding();
                 ImGui::Text("Show Hints");
@@ -284,12 +291,14 @@ namespace IWXMVM::UI
                 ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
                 modified = ImGui::Checkbox("##showBombTimerCheckbox", &visuals.hudInfo.showBombTimer) || modified;
 
+                ImGui::BeginDisabled(!isModDemo);
                 ImGui::AlignTextToFramePadding();
                 ImGui::Text("Show zPAM Text");
                 ImGui::SameLine();
                 ImGui::SetCursorPosX(checkboxColumnPosition);
                 ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
                 modified = ImGui::Checkbox("##showModTextCheckbox", &visuals.hudInfo.showModText) || modified;
+                ImGui::EndDisabled();
             }
 
             ImGui::Dummy(ImVec2(0.0f, 20.0f));

@@ -111,6 +111,10 @@ namespace IWXMVM
         // (CoD4: [type:1][seq:4][len:4] = 9, CoD2: [seq:4][len:4] = 8)
         virtual uint32_t GetDemoMessageHeaderSize() { return 9; }
 
+        // Optional: name of the mod the loaded demo was recorded with (e.g. "zpam"), empty when unknown or
+        // vanilla. Lets the UI disable mod-specific options.
+        virtual std::string GetDemoModName() { return {}; }
+
        private:
         Types::Game game;
     };

@@ -178,7 +178,8 @@ namespace IWXMVM::IW2::Addresses
     constexpr uint32_t hudElem_count = 31;
     constexpr uint32_t hudElem_size = 128;
     // hudelem layout from CoD2x cod2_player.h (32 int-sized fields, 128 bytes)
-    constexpr uint32_t hudElem_type = 0;   // int: 1 text, 2 value, 3..5/7 timers+clocks, 6 material icon, 13 fade
+    constexpr uint32_t hudElem_type = 0;   // int: 1 text, 2 value, 3..5/7 timers, 6 material icon, 0xB/0xC clock+material, 13 fade
+    constexpr uint32_t hudElem_x = 4;      // float
     constexpr uint32_t hudElem_y = 8;      // float
     constexpr uint32_t hudElem_materialIdx = 60;  // int: material configstring index
     constexpr uint32_t hudElem_foreground = 124;  // int: pass selector compared by CG_Draw2dHudElems @ 0x4DDFF0

@@ -415,11 +415,30 @@ namespace IWXMVM::IW2
             dvar->modified = true;
         }
 
+        std::string GetDemoModName() final
+        {
+            if (!Structures::IsDemoPlaying())
+                return {};
+
+            // the serverinfo configstring carries mod markers; zPAM sets "\_zpam\<version>"
+            const auto stringOffsets = reinterpret_cast<const int*>(Addresses::cl_gameState);
+            const auto offset = stringOffsets[0];
+            if (offset <= 0 || offset >= 0x20000)
+                return {};
+
+            const auto serverInfo = reinterpret_cast<const char*>(Addresses::cl_gameState + 2048 * sizeof(int)) + offset;
+            if (std::strstr(serverInfo, "\\_zpam\\"))
+                return "zpam";
+
+            return {};
+        }
+
         Types::HudInfo GetHudInfo() final
         {
             Types::HudInfo hudInfo{};
-            hudInfo.show2DElements = GetDvarBool("cg_draw2D");
-            // reported from our own flags (not the dvars) so the moviemaking defaults apply on first load
+            // reported from our own flags (not the archived game dvars, which carry over from previous
+            // sessions) so the moviemaking defaults apply on first load
+            hudInfo.show2DElements = Hooks::HUD::show2DElements;
             hudInfo.showPlayerHUD = Hooks::HUD::showPlayerHUD;
             hudInfo.showShellshock = Hooks::HUD::showShellshock;
             hudInfo.showCrosshair = Hooks::HUD::showCrosshair;
@@ -435,7 +454,7 @@ namespace IWXMVM::IW2
             hudInfo.showChat = Hooks::HUD::showChat;
             hudInfo.showBombTimer = Hooks::HUD::showBombTimer;
             hudInfo.showBloodOverlay = !Patches::GetGamePatches().CG_DrawDamageBlend.IsApplied();
-            hudInfo.showKillfeed = GetDvarBool("cg_drawGameMessages");
+            hudInfo.showKillfeed = Hooks::HUD::showKillfeed;
             hudInfo.killfeedTeam1Color = ReadVec3Dvar("g_TeamColor_Allies", glm::vec3(0.5f, 0.5f, 1.0f));
             hudInfo.killfeedTeam2Color = ReadVec3Dvar("g_TeamColor_Axis", glm::vec3(1.0f, 0.5f, 0.5f));
             return hudInfo;
@@ -443,6 +462,8 @@ namespace IWXMVM::IW2
 
         void SetHudInfo(Types::HudInfo hudInfo) final
         {
+            Hooks::HUD::show2DElements = hudInfo.show2DElements;
+            Hooks::HUD::showKillfeed = hudInfo.showKillfeed;
             SetDvarBool("cg_draw2D", hudInfo.show2DElements);
             if (!hudInfo.show2DElements)
             {

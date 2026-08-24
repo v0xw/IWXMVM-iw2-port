@@ -24,6 +24,8 @@ namespace IWXMVM::IW2::Hooks::HUD
     bool showBombTimer = false;
     bool showPlayerHUD = false;
     bool showCrosshair = false;
+    bool show2DElements = true;
+    bool showKillfeed = true;
 
     // ---------------------------------------------------------------------------------------------------------
     // Scripted hudelem filtering.
@@ -76,10 +78,10 @@ namespace IWXMVM::IW2::Hooks::HUD
 
         bool IsBombTimerElem(uint8_t* elem)
         {
-            // the bomb stopwatch sits in the top left (zPAM: y 76); the round timer in the lower half (y 445)
+            // setClock elements draw the stopwatch dial material, so the bomb timer is a material-type
+            // element showing hudStopwatch (identical in vanilla and zPAM)
             const auto type = *reinterpret_cast<int*>(elem + Addresses::hudElem_type);
-            const auto y = *reinterpret_cast<float*>(elem + Addresses::hudElem_y);
-            return IsTimerType(type) && y < 240.0f;
+            return IsMaterialElem(type) && std::strcmp(GetElemMaterialName(elem), "hudStopwatch") == 0;
         }
 
         bool IsTimerElem(uint8_t* elem)
@@ -90,18 +92,27 @@ namespace IWXMVM::IW2::Hooks::HUD
 
         bool IsModTextElem(uint8_t* elem)
         {
-            // zPAM's header lines at the very top left ("Search and destroy MR12", league rules, version)
             const auto type = *reinterpret_cast<int*>(elem + Addresses::hudElem_type);
+            const auto x = *reinterpret_cast<float*>(elem + Addresses::hudElem_x);
             const auto y = *reinterpret_cast<float*>(elem + Addresses::hudElem_y);
-            return type == 1 && y <= 30.0f;
+
+            // zPAM's header lines at the very top left ("Search and destroy MR12", league rules, version)
+            if (type == 1 && y <= 30.0f)
+                return true;
+
+            // texts near the bottom center (zPAM's text bomb countdown, spectator prompts); the players-left
+            // display sits in the same strip but far to the right (x <= -100, right-aligned)
+            return (type == 1 || type == 2) && y >= 400.0f && x > -100.0f;
         }
 
         bool IsPlayersLeftElem(uint8_t* elem)
         {
-            // zPAM's players-left display at the bottom right: label texts and count values, all at y 479
+            // zPAM's players-left display at the bottom right: label texts and count values at y 479,
+            // right-aligned with x -280..-185
             const auto type = *reinterpret_cast<int*>(elem + Addresses::hudElem_type);
+            const auto x = *reinterpret_cast<float*>(elem + Addresses::hudElem_x);
             const auto y = *reinterpret_cast<float*>(elem + Addresses::hudElem_y);
-            return (type == 1 || type == 2) && y >= 400.0f;
+            return (type == 1 || type == 2) && y >= 400.0f && x <= -100.0f;
         }
 
         bool IsScoreElem(uint8_t* elem)

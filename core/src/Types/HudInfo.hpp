@@ -21,7 +21,9 @@ namespace IWXMVM::Types
         // initialization keep compiling; games that do not support these can ignore them
         bool showHitmarkers = true;
         bool showKilledByMessages = true;  // the "You killed X" / "Killed by X" screen texts
-        bool showModText = false;  // mod-specific info texts (zPAM warnings, weapon info, players left)
+        bool showModText = false;  // mod-specific info texts (zPAM warnings, weapon info)
         bool showTimer = true;     // the round timer
+        bool showPlayersLeftAlive = true;  // zPAM's players-left counters at the bottom
+        bool showHints = true;             // cursor hints: weapon pickup, use / plant prompts, mantle
     };
 }  // namespace IWXMVM::Types

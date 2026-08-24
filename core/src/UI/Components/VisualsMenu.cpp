@@ -245,6 +245,21 @@ namespace IWXMVM::UI
                 modified = ImGui::Checkbox("##showTimerCheckbox", &visuals.hudInfo.showTimer) || modified;
 
                 ImGui::AlignTextToFramePadding();
+                ImGui::Text("Show Players Left Alive");
+                ImGui::SameLine();
+                ImGui::SetCursorPosX(checkboxColumnPosition);
+                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
+                modified =
+                    ImGui::Checkbox("##showPlayersLeftCheckbox", &visuals.hudInfo.showPlayersLeftAlive) || modified;
+
+                ImGui::AlignTextToFramePadding();
+                ImGui::Text("Show Hints");
+                ImGui::SameLine();
+                ImGui::SetCursorPosX(checkboxColumnPosition);
+                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
+                modified = ImGui::Checkbox("##showHintsCheckbox", &visuals.hudInfo.showHints) || modified;
+
+                ImGui::AlignTextToFramePadding();
                 ImGui::Text("Show zPAM Text");
                 ImGui::SameLine();
                 ImGui::SetCursorPosX(checkboxColumnPosition);

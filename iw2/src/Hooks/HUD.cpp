@@ -3,6 +3,7 @@
 
 #include "Utilities/HookManager.hpp"
 #include "../Addresses.hpp"
+#include "../Functions.hpp"
 #include "../Structures.hpp"
 
 namespace IWXMVM::IW2::Hooks::HUD
@@ -14,6 +15,8 @@ namespace IWXMVM::IW2::Hooks::HUD
     bool showKilledByMessages = true;
     bool showModText = false;
     bool showTimer = true;
+    bool showPlayersLeftAlive = true;
+    bool showHints = true;
 
     // ---------------------------------------------------------------------------------------------------------
     // Scripted hudelem filtering.
@@ -65,6 +68,14 @@ namespace IWXMVM::IW2::Hooks::HUD
             return type >= 3 && type <= 5 || type == 7;
         }
 
+        bool IsPlayersLeftElem(uint8_t* elem)
+        {
+            // zPAM's players-left display at the bottom right: label texts and count values, all at y 479
+            const auto type = *reinterpret_cast<int*>(elem + Addresses::hudElem_type);
+            const auto y = *reinterpret_cast<float*>(elem + Addresses::hudElem_y);
+            return (type == 1 || type == 2) && y >= 400.0f;
+        }
+
         bool IsScoreElem(uint8_t* elem)
         {
             // the team win score in the top left: value elements plus the hudicon_ team flags beside them.
@@ -92,6 +103,8 @@ namespace IWXMVM::IW2::Hooks::HUD
                     visible = showHitmarkers;
                 else if (IsTimerElem(elem))
                     visible = showTimer;
+                else if (IsPlayersLeftElem(elem))
+                    visible = showPlayersLeftAlive;
                 else if (IsScoreElem(elem))
                     visible = showScore;
                 else
@@ -109,7 +122,7 @@ namespace IWXMVM::IW2::Hooks::HUD
         void MaskHiddenHudElems()
         {
             maskedCount = 0;
-            if (showIconsAndText && showHitmarkers && showScore && showTimer)
+            if (showIconsAndText && showHitmarkers && showScore && showTimer && showPlayersLeftAlive)
                 return;
 
             const auto snap = *Structures::At<uint8_t*>(Addresses::cg_nextSnap);
@@ -176,6 +189,36 @@ namespace IWXMVM::IW2::Hooks::HUD
             *reinterpret_cast<int*>(snap + Addresses::snap_shellshockIndex) = 0;
             *reinterpret_cast<int*>(snap + Addresses::snap_shellshockTime) = 0;
             *reinterpret_cast<int*>(snap + Addresses::snap_shellshockDuration) = 0;
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------------------
+    // Cursor hints (weapon pickup, use / bomb plant prompts, mantle) come from the snapshot playerstate; while
+    // the hints toggle is off the fields are zeroed each frame. The mantle hint additionally has its own dvar.
+    // zPAM's plant / defuse progress bar is unrelated (scripted hudelems) and stays visible.
+    // ---------------------------------------------------------------------------------------------------------
+
+    void SuppressCursorHints()
+    {
+        if (!Structures::IsDemoPlaying())
+            return;
+
+        if (const auto mantleHint = Functions::FindDvar("cg_drawMantleHint");
+            mantleHint && mantleHint->type == Structures::DVAR_TYPE_BOOL)
+            mantleHint->value.boolean = showHints;
+
+        if (showHints)
+            return;
+
+        for (const auto address : {Addresses::cg_snap, Addresses::cg_nextSnap})
+        {
+            const auto snap = *Structures::At<uint8_t*>(address);
+            if (snap == nullptr)
+                continue;
+
+            *reinterpret_cast<int*>(snap + Addresses::snap_cursorHint) = 0;
+            *reinterpret_cast<int*>(snap + Addresses::snap_cursorHintString) = 0;
+            *reinterpret_cast<int*>(snap + Addresses::snap_cursorHintEntIndex) = 0;
         }
     }
 

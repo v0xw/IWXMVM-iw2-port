@@ -13,6 +13,10 @@ namespace IWXMVM::IW2::Patches
         // int __cdecl(); toggled by the Visuals tab blood overlay switch.
         ReturnPatch CG_DrawDamageBlend{Addresses::CG_DrawDamageBlend, PatchApplySetting::Deferred};
 
+        // Latches the snapshot cursor hint (weapon pickup / use / plant prompts) into the cg globals the hint
+        // drawer reads. int __cdecl(); patched out while the hints toggle is off.
+        ReturnPatch CG_UpdateCursorHint{Addresses::CG_UpdateCursorHint, PatchApplySetting::Deferred};
+
         // CL_KeyEvent converts every key press during demo playback into ESCAPE (pops up the main menu).
         // NOP the "demo playing" branch so keys behave like in a normal game.
         NopPatch<2> CL_KeyEvent_DemoKeyToEscape{Addresses::CL_KeyEvent_DemoPlayingJump, PatchApplySetting::Immediately};

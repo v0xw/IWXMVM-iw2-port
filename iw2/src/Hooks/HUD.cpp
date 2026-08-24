@@ -4,6 +4,7 @@
 #include "Utilities/HookManager.hpp"
 #include "../Addresses.hpp"
 #include "../Functions.hpp"
+#include "../Patches.hpp"
 #include "../Structures.hpp"
 
 namespace IWXMVM::IW2::Hooks::HUD
@@ -213,8 +214,13 @@ namespace IWXMVM::IW2::Hooks::HUD
             mantleHint->value.boolean = showHints;
 
         if (showHints)
+        {
+            Patches::GetGamePatches().CG_UpdateCursorHint.Revert();
             return;
+        }
 
+        // stop the latch from updating and clear whatever is still fading out
+        Patches::GetGamePatches().CG_UpdateCursorHint.Apply();
         *Structures::At<int>(Addresses::cg_cursorHintLatched) = 0;
         *Structures::At<int>(Addresses::cg_cursorHintTime) = 0;
         *Structures::At<int>(Addresses::cg_cursorHintString) = 0;

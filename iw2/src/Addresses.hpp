@@ -164,6 +164,7 @@ namespace IWXMVM::IW2::Addresses
     constexpr uint32_t snap_shellshockIndex = 1508;     // int (cgs shellshock parms index)
     constexpr uint32_t snap_shellshockTime = 1512;      // int (server time the shock started)
     constexpr uint32_t snap_shellshockDuration = 1516;  // int
+    constexpr uintptr_t CG_UpdateCursorHint = 0x004C5A30;  // int __cdecl(); latches the snapshot cursor hint into the globals below
     // the cgame latches the playerstate cursor hint (snapshot offset 1444) into these globals each frame,
     // where it lingers and fades; the hint drawer reads the latch, not the snapshot
     constexpr uintptr_t cg_cursorHintLatched = 0x01519E68;  // int, hint type (0 = none)

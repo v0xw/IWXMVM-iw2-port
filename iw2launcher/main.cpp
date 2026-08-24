@@ -104,7 +104,7 @@ namespace
 
         const auto gameDir = FindGameDirectory();
         if (!gameDir.empty())
-            candidates.push_back(gameDir / L"IW2MVM" / DLL_NAME);
+            candidates.push_back(gameDir / L"IWXMVM" / DLL_NAME);
 
         for (const auto& candidate : candidates)
         {
@@ -368,7 +368,7 @@ int Run(int argc, wchar_t* argv[])
     const auto dllPath = FindDll(dllArgument);
     if (dllPath.empty())
     {
-        std::printf("Could not find %ls. Put it next to the launcher, into <game>\\IW2MVM\\, or pass its path.\n", DLL_NAME);
+        std::printf("Could not find %ls. Put it next to the launcher, into <game>\\IWXMVM\\, or pass its path.\n", DLL_NAME);
         return 1;
     }
     std::printf("Using %ls\n", dllPath.c_str());

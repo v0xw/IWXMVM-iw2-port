@@ -16,7 +16,6 @@
     <ProjectGuid>{c4e1a9d2-7b3f-4e2c-8a5d-1f9b6c0d3e22}</ProjectGuid>
     <RootNamespace>iw2launcher</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <GameDir>C:\Games\Call of Duty 2</GameDir>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -66,9 +65,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <UACExecutionLevel>AsInvoker</UACExecutionLevel>
     </Link>
-    <PostBuildEvent>
-      <Command>if /I "$(Configuration)"=="Release" if exist "$(GameDir)\" ( if not exist "$(GameDir)\IW2MVM\" mkdir "$(GameDir)\IW2MVM" ) &amp;&amp; if /I "$(Configuration)"=="Release" if exist "$(GameDir)\" copy /Y "$(TargetPath)" "$(GameDir)\IW2MVM\"</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -88,9 +84,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <UACExecutionLevel>AsInvoker</UACExecutionLevel>
     </Link>
-    <PostBuildEvent>
-      <Command>if /I "$(Configuration)"=="Release" if exist "$(GameDir)\" ( if not exist "$(GameDir)\IW2MVM\" mkdir "$(GameDir)\IW2MVM" ) &amp;&amp; if /I "$(Configuration)"=="Release" if exist "$(GameDir)\" copy /Y "$(TargetPath)" "$(GameDir)\IW2MVM\"</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />

@@ -105,6 +105,22 @@ namespace IWXMVM::IW2::Hooks::Playback
         }
     }
 
+    // ---------------------------------------------------------------------------------------------------------
+    // zPAM shows the names of the still-alive enemy players at the bottom right by pushing them into the client
+    // dvar ui_playersleft_list (rendered by a zPAM menu). The demo keeps re-setting it through recorded server
+    // commands. Nobody editing a demo wants that list on screen, so it is blanked every frame during playback.
+    // ---------------------------------------------------------------------------------------------------------
+
+    void SuppressPlayersLeftList()
+    {
+        if (!IsDemoPlaying())
+            return;
+
+        const auto dvar = Functions::FindDvar("ui_playersleft_list");
+        if (dvar && dvar->type == Structures::DVAR_TYPE_STRING && dvar->value.string && dvar->value.string[0])
+            Functions::Dvar_SetString(dvar, "");
+    }
+
     void SetMouseCaptured(bool captured)
     {
         mouseCaptured = captured;
@@ -129,6 +145,7 @@ namespace IWXMVM::IW2::Hooks::Playback
         ApplyMouseCapture();
         SanitizeWindowPositionDvars();
         HUD::SuppressShellshock();
+        SuppressPlayersLeftList();
 
         const auto gameMsec = Com_ModifyMsec_Trampoline(msec);
         const auto delta = Components::Playback::CalculatePlaybackDelta(gameMsec);

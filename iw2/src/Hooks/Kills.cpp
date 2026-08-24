@@ -6,6 +6,7 @@
 #include "../Addresses.hpp"
 #include "../Structures.hpp"
 #include "../DemoParser.hpp"
+#include "HUD.hpp"
 #include "Playback.hpp"
 
 #include "nlohmann/json.hpp"
@@ -197,7 +198,15 @@ namespace IWXMVM::IW2::Hooks::Kills
         return markers;
     }
 
-    // CG_Obituary(entityState_t* es <eax>, char localClientNum <dil>)
+    // clears the "You killed X" / "Killed by X" centerprint the original just queued when it is toggled off;
+    // other centerprints (round messages etc.) are untouched since this only runs right after an obituary
+    static void __cdecl SuppressKilledByMessage()
+    {
+        if (!HUD::showKilledByMessages)
+            *At<int>(Addresses::cg_centerPrintTime) = 0;
+    }
+
+    // CG_Obituary(entityState_t* es <eax>, char localClientNum <dil>), void return, no stack arguments
     uintptr_t CG_Obituary_Trampoline = 0;
 
     void __declspec(naked) CG_Obituary_Hook()
@@ -215,7 +224,16 @@ namespace IWXMVM::IW2::Hooks::Kills
         __asm
         {
             popad
-            jmp CG_Obituary_Trampoline
+            call CG_Obituary_Trampoline
+            pushad
+        }
+
+        SuppressKilledByMessage();
+
+        __asm
+        {
+            popad
+            ret
         }
     }
 

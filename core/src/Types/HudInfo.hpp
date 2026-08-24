@@ -18,7 +18,8 @@ namespace IWXMVM::Types
         glm::vec3 killfeedTeam2Color;
 
         // appended after the fields above so game modules using positional aggregate
-        // initialization keep compiling; games that do not support it can ignore it
+        // initialization keep compiling; games that do not support these can ignore them
         bool showHitmarkers = true;
+        bool showKilledByMessages = true;  // the "You killed X" / "Killed by X" screen texts
     };
 }  // namespace IWXMVM::Types

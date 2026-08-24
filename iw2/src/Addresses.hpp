@@ -82,6 +82,7 @@ namespace IWXMVM::IW2::Addresses
     constexpr uintptr_t CG_DrawDamageBlend = 0x004C99F0;  // int __cdecl(); full-screen red blend while cg.damageTime > cg.time (the on-hit blood overlay)
 
     constexpr uintptr_t CG_Obituary = 0x004E03F0;  // entityState_t* in EAX (otherEntityNum = victim, attackerEntityNum), localClientNum in DIL
+    constexpr uintptr_t cg_centerPrintTime = 0x01519A10;  // int, start time of the active centerprint; 0 = none (CG_DrawCenterString @ 0x4C8360 gates on it). CG_Obituary centerprints the "You killed X" / "Killed by X" texts
 
     constexpr uintptr_t CG_ExecuteNewServerCommands = 0x004D2150;  // latestSequence in ESI, EDI (low byte) = 0
     constexpr uintptr_t CG_ServerCommand = 0x004D1B80;

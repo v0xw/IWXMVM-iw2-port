@@ -425,6 +425,7 @@ namespace IWXMVM::IW2
             hudInfo.showScore = Hooks::HUD::showScore;
             hudInfo.showIconsAndText = Hooks::HUD::showIconsAndText;
             hudInfo.showHitmarkers = Hooks::HUD::showHitmarkers;
+            hudInfo.showKilledByMessages = Hooks::HUD::showKilledByMessages;
             hudInfo.showBloodOverlay = !Patches::GetGamePatches().CG_DrawDamageBlend.IsApplied();
             hudInfo.showKillfeed = GetDvarBool("cg_drawGameMessages");
             hudInfo.killfeedTeam1Color = ReadVec3Dvar("g_TeamColor_Allies", glm::vec3(0.5f, 0.5f, 1.0f));
@@ -465,6 +466,7 @@ namespace IWXMVM::IW2
             Hooks::HUD::showHitmarkers = hudInfo.showHitmarkers;
             Hooks::HUD::showScore = hudInfo.showScore;
             Hooks::HUD::showShellshock = hudInfo.showShellshock;
+            Hooks::HUD::showKilledByMessages = hudInfo.showKilledByMessages;
 
             WriteVec3Dvar("g_TeamColor_Allies", hudInfo.killfeedTeam1Color);
             WriteVec3Dvar("g_TeamColor_Axis", hudInfo.killfeedTeam2Color);

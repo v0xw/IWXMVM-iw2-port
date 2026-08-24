@@ -6,6 +6,7 @@ namespace IWXMVM::IW2::Hooks::HUD
     extern bool showHitmarkers;
     extern bool showScore;
     extern bool showShellshock;
+    extern bool showKilledByMessages;
 
     void Install();
 

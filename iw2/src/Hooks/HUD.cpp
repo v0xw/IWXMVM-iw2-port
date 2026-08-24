@@ -11,6 +11,7 @@ namespace IWXMVM::IW2::Hooks::HUD
     bool showHitmarkers = true;
     bool showScore = true;
     bool showShellshock = true;
+    bool showKilledByMessages = true;
 
     // ---------------------------------------------------------------------------------------------------------
     // Scripted hudelem filtering.

@@ -228,6 +228,14 @@ namespace IWXMVM::UI
                 ImGui::SetCursorPosX(checkboxColumnPosition);
                 ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
                 modified = ImGui::Checkbox("##showHitmarkersCheckbox", &visuals.hudInfo.showHitmarkers) || modified;
+
+                ImGui::AlignTextToFramePadding();
+                ImGui::Text("Show Killed-by Text");
+                ImGui::SameLine();
+                ImGui::SetCursorPosX(checkboxColumnPosition);
+                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
+                modified =
+                    ImGui::Checkbox("##showKilledByCheckbox", &visuals.hudInfo.showKilledByMessages) || modified;
             }
 
             ImGui::Dummy(ImVec2(0.0f, 20.0f));

@@ -83,10 +83,12 @@ namespace IWXMVM::IW2::Hooks::HUD
         bool IsBombTimerElem(uint8_t* elem)
         {
             // setClock elements draw the stopwatch dial material, so the bomb timer is a material-type
-            // element showing hudStopwatch (identical in vanilla and zPAM; material names are stored
-            // lowercased, hence the case-insensitive compare)
+            // element showing hudStopwatch in the top left (identical in vanilla and zPAM; material names are
+            // stored lowercased, hence the case-insensitive compare). zPAM's round-end countdown uses the same
+            // material but sits mid-screen right and is classified as mod text instead.
             const auto type = *reinterpret_cast<int*>(elem + Addresses::hudElem_type);
-            return IsMaterialElem(type) && _stricmp(GetElemMaterialName(elem), "hudStopwatch") == 0;
+            const auto y = *reinterpret_cast<float*>(elem + Addresses::hudElem_y);
+            return IsMaterialElem(type) && y < 240.0f && _stricmp(GetElemMaterialName(elem), "hudStopwatch") == 0;
         }
 
         bool IsTimerElem(uint8_t* elem)
@@ -107,7 +109,14 @@ namespace IWXMVM::IW2::Hooks::HUD
 
             // texts near the bottom center (zPAM's text bomb countdown, spectator prompts); the players-left
             // display sits in the same strip but far to the right (x <= -100, right-aligned)
-            return (type == 1 || type == 2) && y >= 400.0f && x > -100.0f;
+            if ((type == 1 || type == 2) && y >= 400.0f && x > -100.0f)
+                return true;
+
+            // zPAM's round-end "Round N Starting" cluster on the middle right (yellow texts, value and its
+            // countdown stopwatch at x -90.., y 270..325)
+            if ((type == 1 || type == 2) && y >= 240.0f && y < 400.0f && x <= -50.0f)
+                return true;
+            return IsMaterialElem(type) && y >= 240.0f && _stricmp(GetElemMaterialName(elem), "hudStopwatch") == 0;
         }
 
         bool IsPlayersLeftElem(uint8_t* elem)

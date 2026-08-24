@@ -37,15 +37,16 @@ Then build the included solution file using Visual Studio.
 
 ## Running
 
-Start the game and inject `iw2.dll` (from `iw2\bin\Win32\Release\`) with the injector of your choice, or
-use the included development launcher, which starts the game and injects in one step:
+Run the included launcher, then start Call of Duty 2 the way you normally do - the launcher waits for
+`CoD2MP_s.exe` and injects `iw2.dll` once the game is up (it also works when the game is already running):
 
 ```
-iw2launcher\bin\Win32\Release\iw2launcher.exe --launch --windowed 1920x1080
+iw2launcher\bin\Win32\Release\iw2launcher.exe
 ```
 
-Nothing needs to be copied into the game installation: the launcher injects the DLL straight from the
-build output, and `iw2.dll` loads `D3DCompiler_43.dll` from its own directory (staged there by the build).
+Alternatively, inject `iw2.dll` (from `iw2\bin\Win32\Release\`) with the injector of your choice.
+Nothing needs to be copied into the game installation: the DLL is injected straight from the build
+output, and `iw2.dll` loads `D3DCompiler_43.dll` from its own directory (staged there by the build).
 
 ## Project Structure
 

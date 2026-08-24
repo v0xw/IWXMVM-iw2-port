@@ -1,10 +1,10 @@
-// iw2launcher - injects iw2.dll into a running (or freshly started) CoD2MP_s.exe.
+// iw2launcher - injects iw2.dll into CoD2MP_s.exe.
 //
-//   iw2launcher.exe [--launch] [--wait <seconds>] [path\to\iw2.dll]
+//   iw2launcher.exe [--wait <seconds>] [path\to\iw2.dll]
 //
-// Without --launch the launcher attaches to an already running game (start it and wait for the main menu first).
-// With --launch it starts CoD2MP_s.exe from the install directory and injects once the game window exists.
-// Must run elevated when the game runs elevated (CoD2x starts the game as administrator).
+// Waits for the game to be started (however and from wherever the user runs it), then injects.
+// Must run elevated when the game runs elevated (CoD2x starts the game as administrator); it re-runs
+// itself elevated automatically when needed.
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -23,7 +23,6 @@ namespace
 {
     constexpr const wchar_t* GAME_PROCESS_NAME = L"CoD2MP_s.exe";
     constexpr const char* GAME_WINDOW_CLASS = "CoD2";
-    constexpr const wchar_t* DEFAULT_GAME_DIR = L"C:\\Games\\Call of Duty 2";
     constexpr const wchar_t* DLL_NAME = L"iw2.dll";
 
     DWORD FindProcessId(const wchar_t* processName)
@@ -57,41 +56,6 @@ namespace
         wchar_t buffer[MAX_PATH];
         GetModuleFileNameW(nullptr, buffer, MAX_PATH);
         return std::filesystem::path(buffer).parent_path();
-    }
-
-    std::filesystem::path ReadInstallPathFromRegistry()
-    {
-        for (auto key : {L"SOFTWARE\\WOW6432Node\\Activision\\Call of Duty 2", L"SOFTWARE\\Activision\\Call of Duty 2"})
-        {
-            HKEY hKey;
-            if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, key, 0, KEY_READ, &hKey) == ERROR_SUCCESS)
-            {
-                wchar_t value[MAX_PATH];
-                DWORD size = sizeof(value);
-                DWORD type = 0;
-                const auto result = RegQueryValueExW(hKey, L"InstallPath", nullptr, &type, reinterpret_cast<LPBYTE>(value), &size);
-                RegCloseKey(hKey);
-                if (result == ERROR_SUCCESS && type == REG_SZ)
-                    return std::filesystem::path(value);
-            }
-        }
-        return {};
-    }
-
-    std::filesystem::path FindGameDirectory()
-    {
-        auto fromRegistry = ReadInstallPathFromRegistry();
-        if (!fromRegistry.empty() && std::filesystem::exists(fromRegistry / GAME_PROCESS_NAME))
-            return fromRegistry;
-
-        if (std::filesystem::exists(std::filesystem::path(DEFAULT_GAME_DIR) / GAME_PROCESS_NAME))
-            return DEFAULT_GAME_DIR;
-
-        const auto local = GetLauncherDirectory();
-        if (std::filesystem::exists(local / GAME_PROCESS_NAME))
-            return local;
-
-        return {};
     }
 
     std::filesystem::path FindDll(const std::wstring& explicitPath)
@@ -267,30 +231,6 @@ namespace
         return InjectResult::Ok;
     }
 
-    DWORD LaunchGame(const std::filesystem::path& gameDir, const std::wstring& extraArgs)
-    {
-        const auto exe = (gameDir / GAME_PROCESS_NAME).wstring();
-        std::wstring commandLine = L"\"" + exe + L"\"";
-        if (!extraArgs.empty())
-            commandLine += L" " + extraArgs;
-
-        STARTUPINFOW si{};
-        si.cb = sizeof(si);
-        PROCESS_INFORMATION pi{};
-
-        if (!CreateProcessW(exe.c_str(), commandLine.data(), nullptr, nullptr, FALSE, 0, nullptr,
-                            gameDir.wstring().c_str(), &si, &pi))
-        {
-            const auto error = GetLastError();
-            std::printf("Failed to start %ls (error %lu)%s\n", exe.c_str(), error,
-                        error == ERROR_ELEVATION_REQUIRED ? " - the game is configured to run as administrator" : "");
-            return error == ERROR_ELEVATION_REQUIRED ? static_cast<DWORD>(-1) : 0;
-        }
-
-        CloseHandle(pi.hThread);
-        CloseHandle(pi.hProcess);
-        return pi.dwProcessId;
-    }
 }  // namespace
 
 int Run(int argc, wchar_t* argv[]);
@@ -318,48 +258,21 @@ int wmain(int argc, wchar_t* argv[])
 
 int Run(int argc, wchar_t* argv[])
 {
-    bool launch = false;
     int extraWaitSeconds = 3;
     std::wstring dllArgument;
-    std::wstring gameArgs;  // everything after "--" is passed to CoD2MP_s.exe (e.g. +set r_fullscreen 0)
 
     for (int i = 1; i < argc; ++i)
     {
         std::wstring arg = argv[i];
         if (arg == L"--pause" || arg == L"--no-pause")
             continue;
-        else if (arg == L"--")
-        {
-            for (int j = i + 1; j < argc; ++j)
-            {
-                if (!gameArgs.empty())
-                    gameArgs += L" ";
-                gameArgs += argv[j];
-            }
-            break;
-        }
-        else if (arg == L"--launch")
-            launch = true;
-        else if (arg == L"--windowed")
-        {
-            // r_fullscreen / r_mode are archived dvars, so the game will remember this until changed again
-            launch = true;
-            std::wstring mode = L"1600x900";
-            if (i + 1 < argc && iswdigit(argv[i + 1][0]))
-                mode = argv[++i];
-            if (!gameArgs.empty())
-                gameArgs += L" ";
-            gameArgs += L"+set r_fullscreen 0 +set r_mode " + mode;
-        }
         else if (arg == L"--wait" && i + 1 < argc)
             extraWaitSeconds = _wtoi(argv[++i]);
         else if (arg == L"--help" || arg == L"-h" || arg == L"/?")
         {
-            std::printf("Usage: iw2launcher.exe [--launch] [--windowed [WxH]] [--wait <seconds>] [path\\to\\iw2.dll] [-- <game args>]\n"
-                        "  --launch        start CoD2MP_s.exe first (otherwise attach to the running game)\n"
-                        "  --windowed WxH  like --launch, but windowed at the given size (default 1600x900)\n"
-                        "  --wait <sec>    extra seconds to wait after the game window appears (default 3)\n"
-                        "  -- <game args>  passed to the game when using --launch, e.g. -- +set r_fullscreen 0\n");
+            std::printf("Usage: iw2launcher.exe [--wait <seconds>] [path\\to\\iw2.dll]\n"
+                        "  Waits for CoD2MP_s.exe to be running, then injects iw2.dll into it.\n"
+                        "  --wait <sec>  extra seconds to wait after the game window appears (default 3)\n");
             return 0;
         }
         else
@@ -375,45 +288,27 @@ int Run(int argc, wchar_t* argv[])
     std::printf("Using %ls\n", dllPath.c_str());
 
     DWORD pid = FindProcessId(GAME_PROCESS_NAME);
-
-    if (pid == 0 && launch)
-    {
-        const auto gameDir = FindGameDirectory();
-        if (gameDir.empty())
-        {
-            std::printf("Could not locate the game directory (registry / %ls).\n", DEFAULT_GAME_DIR);
-            return 1;
-        }
-
-        std::printf("Starting %ls ...\n", (gameDir / GAME_PROCESS_NAME).c_str());
-        pid = LaunchGame(gameDir, gameArgs);
-        if (pid == static_cast<DWORD>(-1) && !IsElevated())
-        {
-            std::printf("Retrying elevated ...\n");
-            return RelaunchElevated(argc, argv);
-        }
-        if (pid == 0 || pid == static_cast<DWORD>(-1))
-            return 1;
-
-        // wait for the game window and give the renderer time to create its device
-        for (int i = 0; i < 600 && !FindWindowA(GAME_WINDOW_CLASS, nullptr); ++i)
-            Sleep(100);
-        Sleep(extraWaitSeconds * 1000);
-    }
-
+    bool freshlyStarted = false;
     if (pid == 0)
     {
-        std::printf("%ls is not running. Start the game (and wait for the main menu) or use --launch.\n", GAME_PROCESS_NAME);
-        return 1;
+        std::printf("Waiting for the game - please start %ls ...\n", GAME_PROCESS_NAME);
+        while ((pid = FindProcessId(GAME_PROCESS_NAME)) == 0)
+            Sleep(500);
+        std::printf("Game detected (process %lu).\n", pid);
+        freshlyStarted = true;
     }
 
     if (!FindWindowA(GAME_WINDOW_CLASS, nullptr))
     {
-        std::printf("Game window not found yet; waiting for it ...\n");
+        // wait for the game window to appear
+        freshlyStarted = true;
         for (int i = 0; i < 600 && !FindWindowA(GAME_WINDOW_CLASS, nullptr); ++i)
             Sleep(100);
-        Sleep(extraWaitSeconds * 1000);
     }
+
+    // give a freshly started game time to create its renderer / D3D device before injecting
+    if (freshlyStarted)
+        Sleep(extraWaitSeconds * 1000);
 
     if (IsModuleLoaded(pid, DLL_NAME))
     {

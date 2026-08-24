@@ -86,6 +86,7 @@ namespace IWXMVM::IW2::Addresses
     constexpr uintptr_t CG_ExecuteNewServerCommands = 0x004D2150;  // latestSequence in ESI, EDI (low byte) = 0
     constexpr uintptr_t CG_ServerCommand = 0x004D1B80;
     constexpr uintptr_t CL_GetServerCommand = 0x00401710;
+    constexpr uintptr_t CL_GetConfigString = 0x004020D0;  // index in EAX, returns const char* in EAX
 
     // bone camera (__usercall; the caller cleans up all stack arguments)
     constexpr uintptr_t CG_DObjGetWorldTagMatrix = 0x004CCD40;  // tag in EAX, DObj* in ECX; stack: centity*, float axis[3][3] out; returns bool

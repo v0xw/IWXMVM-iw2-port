@@ -189,6 +189,96 @@ namespace IWXMVM::IW2::Hooks::Playback
     }
 
     // ---------------------------------------------------------------------------------------------------------
+    // CL_GetConfigString: CoD2x filters which custom IWD files get loaded while a demo plays - only names
+    // prefix-matching the demo's sv_iwdNames systeminfo entry survive (its Sys_ListFiles hook). A demo from a
+    // server with an older mod set (e.g. zpam_maps_v6) then unloads the viewer's zpam_maps_v7.iwd and the map
+    // load fails even though the map exists locally. While a demo plays, serve a systeminfo whose sv_iwdNames
+    // additionally lists every IWD present locally, so CoD2x keeps them all loaded.
+    // ---------------------------------------------------------------------------------------------------------
+
+    uintptr_t CL_GetConfigString_Trampoline = 0;
+
+    static char doctoredSystemInfo[8192];
+
+    const char* __cdecl DoctorSystemInfo(const char* original)
+    {
+        static bool active = false;
+
+        if (!IsDemoPlaying() || original == nullptr)
+        {
+            active = false;
+            return original;
+        }
+
+        const auto key = std::strstr(original, "\\sv_iwdNames\\");
+        if (key == nullptr)
+            return original;
+
+        try
+        {
+            const auto valueStart = key + std::strlen("\\sv_iwdNames\\");
+            const auto valueEnd = std::strchr(valueStart, '\\');  // nullptr when it is the last pair
+
+            std::string result(original, valueStart);
+            result.append(valueStart, valueEnd ? valueEnd - valueStart : std::strlen(valueStart));
+
+            std::error_code ec;
+            for (const auto& entry :
+                 std::filesystem::directory_iterator(Functions::GetGameDirectory() / "main", ec))
+            {
+                if (!entry.is_regular_file(ec) || entry.path().extension() != ".iwd")
+                    continue;
+                const auto stem = entry.path().stem().string();
+                if (stem.find(' ') != std::string::npos)
+                    continue;
+                result += " " + stem;
+            }
+
+            if (valueEnd)
+                result += valueEnd;
+
+            if (result.size() >= sizeof(doctoredSystemInfo))
+                return original;
+
+            std::memcpy(doctoredSystemInfo, result.c_str(), result.size() + 1);
+
+            if (!active)
+            {
+                active = true;
+                LOG_DEBUG("Serving systeminfo with all local IWDs appended to sv_iwdNames");
+            }
+            return doctoredSystemInfo;
+        }
+        catch (...)
+        {
+            return original;
+        }
+    }
+
+    static int configStringIndex = 0;
+    static const char* configStringResult = nullptr;
+    void __declspec(naked) CL_GetConfigString_Hook()
+    {
+        __asm
+        {
+            mov configStringIndex, eax
+            call CL_GetConfigString_Trampoline  // index still in EAX; returns the string in EAX
+            mov configStringResult, eax
+            cmp configStringIndex, 1            // CS_SYSTEMINFO
+            jne done
+            pushad
+            push configStringResult
+            call DoctorSystemInfo
+            add esp, 4
+            mov configStringResult, eax
+            popad
+        done:
+            mov eax, configStringResult
+            ret
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------------------
     // SCR_UpdateFrame: skip rendering entirely while the game window is minimized (fullscreen CoD2 already does
     // this, windowed does not). Rendering into a minimized window eventually loses the D3D device, and the
     // renderer's silent device recreation executes a frame that still references freed frontend data - observed
@@ -388,6 +478,9 @@ namespace IWXMVM::IW2::Hooks::Playback
         HookManager::CreateHook(Addresses::FS_PureServerSetLoadedIwds,
                                 reinterpret_cast<uintptr_t>(FS_PureServerSetLoadedIwds_Hook),
                                 reinterpret_cast<uintptr_t*>(&FS_PureServerSetLoadedIwds_Trampoline));
+
+        HookManager::CreateHook(Addresses::CL_GetConfigString, reinterpret_cast<uintptr_t>(CL_GetConfigString_Hook),
+                                reinterpret_cast<uintptr_t*>(&CL_GetConfigString_Trampoline));
 
         HookManager::CreateHook(Addresses::FS_Read, reinterpret_cast<uintptr_t>(FS_Read_Hook),
                                 reinterpret_cast<uintptr_t*>(&FS_Read_Trampoline));

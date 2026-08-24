@@ -26,5 +26,7 @@ namespace IWXMVM::Types
         bool showPlayersLeftAlive = true;  // zPAM's players-left counters at the bottom
         bool showHints = true;             // cursor hints: weapon pickup, use / plant prompts, mantle
         bool showTeammateIcons = true;     // the team icon above teammates' heads
+        bool showChat = true;              // player chat messages
+        bool showBombTimer = true;         // the bomb stopwatch in the top left
     };
 }  // namespace IWXMVM::Types

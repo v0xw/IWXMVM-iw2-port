@@ -9,15 +9,21 @@
 
 namespace IWXMVM::IW2::Hooks::HUD
 {
+    // defaults: the clean moviemaking setup - only the 2D master switch, hitmarkers, killed-by text,
+    // killfeed and blood overlay start enabled
     bool showHitmarkers = true;
-    bool showScore = true;
-    bool showShellshock = true;
+    bool showScore = false;
+    bool showShellshock = false;
     bool showKilledByMessages = true;
     bool showModText = false;
-    bool showTimer = true;
-    bool showPlayersLeftAlive = true;
-    bool showHints = true;
-    bool showTeammateIcons = true;
+    bool showTimer = false;
+    bool showPlayersLeftAlive = false;
+    bool showHints = false;
+    bool showTeammateIcons = false;
+    bool showChat = false;
+    bool showBombTimer = false;
+    bool showPlayerHUD = false;
+    bool showCrosshair = false;
 
     // ---------------------------------------------------------------------------------------------------------
     // Scripted hudelem filtering.
@@ -63,10 +69,31 @@ namespace IWXMVM::IW2::Hooks::HUD
             return IsMaterialElem(type) && std::strcmp(GetElemMaterialName(elem), "damage_feedback") == 0;
         }
 
+        bool IsTimerType(int type)
+        {
+            return type >= 3 && type <= 5 || type == 7;
+        }
+
+        bool IsBombTimerElem(uint8_t* elem)
+        {
+            // the bomb stopwatch sits in the top left (zPAM: y 76); the round timer in the lower half (y 445)
+            const auto type = *reinterpret_cast<int*>(elem + Addresses::hudElem_type);
+            const auto y = *reinterpret_cast<float*>(elem + Addresses::hudElem_y);
+            return IsTimerType(type) && y < 240.0f;
+        }
+
         bool IsTimerElem(uint8_t* elem)
         {
             const auto type = *reinterpret_cast<int*>(elem + Addresses::hudElem_type);
-            return type >= 3 && type <= 5 || type == 7;
+            return IsTimerType(type);
+        }
+
+        bool IsModTextElem(uint8_t* elem)
+        {
+            // zPAM's header lines at the very top left ("Search and destroy MR12", league rules, version)
+            const auto type = *reinterpret_cast<int*>(elem + Addresses::hudElem_type);
+            const auto y = *reinterpret_cast<float*>(elem + Addresses::hudElem_y);
+            return type == 1 && y <= 30.0f;
         }
 
         bool IsPlayersLeftElem(uint8_t* elem)
@@ -102,8 +129,12 @@ namespace IWXMVM::IW2::Hooks::HUD
                 bool visible;
                 if (IsHitmarkerElem(elem))
                     visible = showHitmarkers;
+                else if (IsBombTimerElem(elem))
+                    visible = showBombTimer;
                 else if (IsTimerElem(elem))
                     visible = showTimer;
+                else if (IsModTextElem(elem))
+                    visible = showModText;
                 else if (IsPlayersLeftElem(elem))
                     visible = showPlayersLeftAlive;
                 else if (IsScoreElem(elem))
@@ -123,7 +154,7 @@ namespace IWXMVM::IW2::Hooks::HUD
         void MaskHiddenHudElems()
         {
             maskedCount = 0;
-            if (showHitmarkers && showScore && showTimer && showPlayersLeftAlive)
+            if (showHitmarkers && showScore && showTimer && showBombTimer && showPlayersLeftAlive && showModText)
                 return;
 
             const auto snap = *Structures::At<uint8_t*>(Addresses::cg_nextSnap);

@@ -271,6 +271,20 @@ namespace IWXMVM::UI
                     ImGui::Checkbox("##showTeammateIconsCheckbox", &visuals.hudInfo.showTeammateIcons) || modified;
 
                 ImGui::AlignTextToFramePadding();
+                ImGui::Text("Show Chat");
+                ImGui::SameLine();
+                ImGui::SetCursorPosX(checkboxColumnPosition);
+                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
+                modified = ImGui::Checkbox("##showChatCheckbox", &visuals.hudInfo.showChat) || modified;
+
+                ImGui::AlignTextToFramePadding();
+                ImGui::Text("Show Bomb Timer");
+                ImGui::SameLine();
+                ImGui::SetCursorPosX(checkboxColumnPosition);
+                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
+                modified = ImGui::Checkbox("##showBombTimerCheckbox", &visuals.hudInfo.showBombTimer) || modified;
+
+                ImGui::AlignTextToFramePadding();
                 ImGui::Text("Show zPAM Text");
                 ImGui::SameLine();
                 ImGui::SetCursorPosX(checkboxColumnPosition);

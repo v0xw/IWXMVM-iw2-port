@@ -419,9 +419,10 @@ namespace IWXMVM::IW2
         {
             Types::HudInfo hudInfo{};
             hudInfo.show2DElements = GetDvarBool("cg_draw2D");
-            hudInfo.showPlayerHUD = GetDvarBool("hud_enable");
+            // reported from our own flags (not the dvars) so the moviemaking defaults apply on first load
+            hudInfo.showPlayerHUD = Hooks::HUD::showPlayerHUD;
             hudInfo.showShellshock = Hooks::HUD::showShellshock;
-            hudInfo.showCrosshair = GetDvarBool("cg_drawCrosshair");
+            hudInfo.showCrosshair = Hooks::HUD::showCrosshair;
             hudInfo.showScore = Hooks::HUD::showScore;
             hudInfo.showIconsAndText = true;  // no IW2 toggle: unclassified hudelems always draw
             hudInfo.showHitmarkers = Hooks::HUD::showHitmarkers;
@@ -431,6 +432,8 @@ namespace IWXMVM::IW2
             hudInfo.showPlayersLeftAlive = Hooks::HUD::showPlayersLeftAlive;
             hudInfo.showHints = Hooks::HUD::showHints;
             hudInfo.showTeammateIcons = Hooks::HUD::showTeammateIcons;
+            hudInfo.showChat = Hooks::HUD::showChat;
+            hudInfo.showBombTimer = Hooks::HUD::showBombTimer;
             hudInfo.showBloodOverlay = !Patches::GetGamePatches().CG_DrawDamageBlend.IsApplied();
             hudInfo.showKillfeed = GetDvarBool("cg_drawGameMessages");
             hudInfo.killfeedTeam1Color = ReadVec3Dvar("g_TeamColor_Allies", glm::vec3(0.5f, 0.5f, 1.0f));
@@ -449,6 +452,9 @@ namespace IWXMVM::IW2
                 // drawn outside the cg_draw2D-gated pass, so it must be forced off explicitly
                 hudInfo.showTeammateIcons = false;
             }
+
+            Hooks::HUD::showPlayerHUD = hudInfo.showPlayerHUD;
+            Hooks::HUD::showCrosshair = hudInfo.showCrosshair;
 
             // the CoD2 player HUD (compass, health bar, ammo, stance, offhand) is menu-driven and has its
             // own master switch
@@ -481,6 +487,14 @@ namespace IWXMVM::IW2
                 Patches::GetGamePatches().CG_DrawPlayerSprites.Revert();
             else
                 Patches::GetGamePatches().CG_DrawPlayerSprites.Apply();
+
+            Hooks::HUD::showChat = hudInfo.showChat;
+            if (hudInfo.showChat)
+                Patches::GetGamePatches().CG_DrawChatMessages.Revert();
+            else
+                Patches::GetGamePatches().CG_DrawChatMessages.Apply();
+
+            Hooks::HUD::showBombTimer = hudInfo.showBombTimer;
 
             WriteVec3Dvar("g_TeamColor_Allies", hudInfo.killfeedTeam1Color);
             WriteVec3Dvar("g_TeamColor_Axis", hudInfo.killfeedTeam2Color);

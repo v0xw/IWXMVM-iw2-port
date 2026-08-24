@@ -74,6 +74,7 @@ namespace IWXMVM::IW2::Addresses
     constexpr uintptr_t CG_Draw2D = 0x004CBCA0;
     constexpr uintptr_t CG_Draw2dHudElems = 0x004DDFF0;  // void __cdecl()
     constexpr uintptr_t CG_DrawGameMessages = 0x004CAD60;
+    constexpr uintptr_t CG_DrawChatMessages = 0x004C7760;  // void __cdecl(); chat ring buffer drawer (cg_chatHeight / cg_chatTime)
     constexpr uintptr_t CG_DrawCrosshairNames = 0x004C97C0;
     constexpr uintptr_t CG_DrawPlayerSprites = 0x004CBC40;
     constexpr uintptr_t CG_AddViewWeapon = 0x004D6390;

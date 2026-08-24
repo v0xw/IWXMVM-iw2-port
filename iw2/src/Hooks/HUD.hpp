@@ -11,6 +11,10 @@ namespace IWXMVM::IW2::Hooks::HUD
     extern bool showPlayersLeftAlive;
     extern bool showHints;
     extern bool showTeammateIcons;
+    extern bool showChat;
+    extern bool showBombTimer;
+    extern bool showPlayerHUD;
+    extern bool showCrosshair;
 
     void Install();
 

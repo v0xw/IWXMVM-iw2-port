@@ -21,6 +21,9 @@ namespace IWXMVM::IW2::Patches
         // int __cdecl(); toggled by the teammate icons switch.
         ReturnPatch CG_DrawPlayerSprites{Addresses::CG_DrawPlayerSprites, PatchApplySetting::Deferred};
 
+        // Draws the chat message lines. void __cdecl(); toggled by the chat switch.
+        ReturnPatch CG_DrawChatMessages{Addresses::CG_DrawChatMessages, PatchApplySetting::Deferred};
+
         // CL_KeyEvent converts every key press during demo playback into ESCAPE (pops up the main menu).
         // NOP the "demo playing" branch so keys behave like in a normal game.
         NopPatch<2> CL_KeyEvent_DemoKeyToEscape{Addresses::CL_KeyEvent_DemoPlayingJump, PatchApplySetting::Immediately};

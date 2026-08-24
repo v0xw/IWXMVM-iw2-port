@@ -37,10 +37,28 @@ namespace IWXMVM::IW2::Hooks::Diagnostics
 
     uintptr_t Com_Error_Trampoline = 0;
 
+    // configstrings 0 (serverinfo) and 1 (systeminfo) carry mapname, fs_game, sv_pure, sv_iwds - what a demo
+    // demands from the local filesystem. Logged on errors during demo playback to diagnose map load failures.
+    void LogGameStateInfo()
+    {
+        const auto stringOffsets = reinterpret_cast<const int*>(Addresses::cl_gameState);
+        const auto stringData = reinterpret_cast<const char*>(Addresses::cl_gameState + 2048 * sizeof(int));
+        for (int cs = 0; cs <= 1; cs++)
+        {
+            const auto offset = stringOffsets[cs];
+            if (offset <= 0 || offset >= 0x20000)
+                continue;
+            LOG_INFO("configstring {}: {:.900}", cs, stringData + offset);
+        }
+    }
+
     void LogComError(int code, const char* fmt, uintptr_t caller)
     {
         ++comErrorCount;
         LOG_ERROR("Com_Error({}) from {}: {}", code, DescribeAddress(caller), fmt ? fmt : "(null)");
+
+        if (*reinterpret_cast<const int*>(Addresses::clc_demoplaying) != 0)
+            LogGameStateInfo();
     }
 
     void __declspec(naked) Com_Error_Hook()

@@ -227,6 +227,8 @@ namespace IWXMVM::Components
                 visuals.hudInfo.showHitmarkers = value;
             else if (dvar == "iwxmvm_ui_showkilledby")
                 visuals.hudInfo.showKilledByMessages = value;
+            else if (dvar == "iwxmvm_ui_showmodtext")
+                visuals.hudInfo.showModText = value;
             else if (dvar == "ui_hud_obituaries")
                 visuals.hudInfo.showKillfeed = value;
             else if (dvar == "g_teamcolor_allies")
@@ -304,6 +306,7 @@ namespace IWXMVM::Components
         out << "iwxmvm_ui_showscore " << settings.hudInfo.showScore << "\n";
         out << "iwxmvm_ui_showhitmarkers " << settings.hudInfo.showHitmarkers << "\n";
         out << "iwxmvm_ui_showkilledby " << settings.hudInfo.showKilledByMessages << "\n";
+        out << "iwxmvm_ui_showmodtext " << settings.hudInfo.showModText << "\n";
         out << "iwxmvm_ui_showothertext " << settings.hudInfo.showIconsAndText << "\n";
         out << "iwxmvm_ui_showbloodoverlay " << settings.hudInfo.showBloodOverlay << "\n";
         out << "ui_hud_obituaries " << settings.hudInfo.showKillfeed << "\n";

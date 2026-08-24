@@ -236,6 +236,13 @@ namespace IWXMVM::UI
                 ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
                 modified =
                     ImGui::Checkbox("##showKilledByCheckbox", &visuals.hudInfo.showKilledByMessages) || modified;
+
+                ImGui::AlignTextToFramePadding();
+                ImGui::Text("Show zPAM Text");
+                ImGui::SameLine();
+                ImGui::SetCursorPosX(checkboxColumnPosition);
+                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
+                modified = ImGui::Checkbox("##showModTextCheckbox", &visuals.hudInfo.showModText) || modified;
             }
 
             ImGui::Dummy(ImVec2(0.0f, 20.0f));

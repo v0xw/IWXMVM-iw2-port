@@ -21,5 +21,6 @@ namespace IWXMVM::Types
         // initialization keep compiling; games that do not support these can ignore them
         bool showHitmarkers = true;
         bool showKilledByMessages = true;  // the "You killed X" / "Killed by X" screen texts
+        bool showModText = false;  // mod-specific info texts (zPAM warnings, weapon info, players left)
     };
 }  // namespace IWXMVM::Types

@@ -106,19 +106,23 @@ namespace IWXMVM::IW2::Hooks::Playback
     }
 
     // ---------------------------------------------------------------------------------------------------------
-    // zPAM shows the names of the still-alive enemy players at the bottom right by pushing them into the client
-    // dvar ui_playersleft_list (rendered by a zPAM menu). The demo keeps re-setting it through recorded server
-    // commands. Nobody editing a demo wants that list on screen, so it is blanked every frame during playback.
+    // zPAM renders several info texts through client dvars picked up by its menus: the still-alive enemy names
+    // (bottom right), the sniper / shotgun wielders (bottom left) and the server warnings ("Server password is
+    // not set!", "This is an old version of map, use mp_xxx_fix!", changed cvars). The demo keeps re-setting
+    // them through recorded server commands, so while the zPAM-text toggle is off they are blanked every frame.
     // ---------------------------------------------------------------------------------------------------------
 
-    void SuppressPlayersLeftList()
+    void SuppressZpamText()
     {
-        if (!IsDemoPlaying())
+        if (HUD::showModText || !IsDemoPlaying())
             return;
 
-        const auto dvar = Functions::FindDvar("ui_playersleft_list");
-        if (dvar && dvar->type == Structures::DVAR_TYPE_STRING && dvar->value.string && dvar->value.string[0])
-            Functions::Dvar_SetString(dvar, "");
+        for (const auto name : {"ui_playersleft_list", "ui_sniper_info", "ui_shotgun_info", "ui_serverinfo_hud"})
+        {
+            const auto dvar = Functions::FindDvar(name);
+            if (dvar && dvar->type == Structures::DVAR_TYPE_STRING && dvar->value.string && dvar->value.string[0])
+                Functions::Dvar_SetString(dvar, "");
+        }
     }
 
     void SetMouseCaptured(bool captured)
@@ -145,7 +149,7 @@ namespace IWXMVM::IW2::Hooks::Playback
         ApplyMouseCapture();
         SanitizeWindowPositionDvars();
         HUD::SuppressShellshock();
-        SuppressPlayersLeftList();
+        SuppressZpamText();
 
         const auto gameMsec = Com_ModifyMsec_Trampoline(msec);
         const auto delta = Components::Playback::CalculatePlaybackDelta(gameMsec);

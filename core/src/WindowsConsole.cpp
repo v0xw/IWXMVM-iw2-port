@@ -23,6 +23,21 @@ namespace IWXMVM
             if (hConsole != NULL)
                 SetStdHandle(STD_OUTPUT_HANDLE, hConsole);
         }
+
+        // Disable quick-edit mode: with it enabled, a stray click into the console window starts a text
+        // selection and every subsequent console write blocks until the selection is cleared - which freezes
+        // the game's main thread as soon as anything is logged.
+        HANDLE hInput = CreateFileA("CONIN$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                    nullptr, OPEN_EXISTING, 0, nullptr);
+        if (hInput != INVALID_HANDLE_VALUE)
+        {
+            DWORD mode = 0;
+            if (GetConsoleMode(hInput, &mode))
+            {
+                SetConsoleMode(hInput, (mode & ~ENABLE_QUICK_EDIT_MODE) | ENABLE_EXTENDED_FLAGS);
+            }
+            CloseHandle(hInput);
+        }
     }
 
     void WindowsConsole::Close()

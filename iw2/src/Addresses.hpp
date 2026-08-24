@@ -28,6 +28,7 @@ namespace IWXMVM::IW2::Addresses
     constexpr uintptr_t Com_ModifyMsec = 0x00434CB0;  // int __cdecl(int msec)
     constexpr uintptr_t SV_Frame = 0x0045C550;
     constexpr uintptr_t CL_Frame = 0x0040F850;
+    constexpr uintptr_t SCR_UpdateFrame = 0x00414B20;  // no args (returns GetCurrentThreadId); renders one frame
 
     constexpr uintptr_t FS_Read = 0x00422EC0;  // int __cdecl(void* buffer, int len, int handle)
     constexpr uintptr_t FS_FOpenFileRead = 0x00422700;

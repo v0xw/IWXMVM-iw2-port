@@ -98,6 +98,27 @@ namespace IWXMVM::IW2::Hooks::Playback
     }
 
     // ---------------------------------------------------------------------------------------------------------
+    // SCR_UpdateFrame: skip rendering entirely while the game window is minimized (fullscreen CoD2 already does
+    // this, windowed does not). Rendering into a minimized window eventually loses the D3D device, and the
+    // renderer's silent device recreation executes a frame that still references freed frontend data - observed
+    // as an access violation in RB_TessStaticModelCached while a paused demo sat in the background.
+    // ---------------------------------------------------------------------------------------------------------
+
+    typedef DWORD(__cdecl* SCR_UpdateFrame_t)();
+    SCR_UpdateFrame_t SCR_UpdateFrame_Trampoline = nullptr;
+
+    DWORD __cdecl SCR_UpdateFrame_Hook()
+    {
+        const auto hwnd = *At<HWND>(Addresses::win_hwnd);
+        if (hwnd && ::IsIconic(hwnd))
+        {
+            return ::GetCurrentThreadId();  // what the original returns; callers use it as a recursion guard
+        }
+
+        return SCR_UpdateFrame_Trampoline();
+    }
+
+    // ---------------------------------------------------------------------------------------------------------
     // FS_Read: hand all reads on the demo file to core's Rewinding component.
     //
     // CoD2 demo records are [int32 serverMessageSequence][int32 length][byte data[length]] (length == -1 is the
@@ -269,6 +290,9 @@ namespace IWXMVM::IW2::Hooks::Playback
     {
         HookManager::CreateHook(Addresses::Com_ModifyMsec, reinterpret_cast<uintptr_t>(Com_ModifyMsec_Hook),
                                 reinterpret_cast<uintptr_t*>(&Com_ModifyMsec_Trampoline));
+
+        HookManager::CreateHook(Addresses::SCR_UpdateFrame, reinterpret_cast<uintptr_t>(SCR_UpdateFrame_Hook),
+                                reinterpret_cast<uintptr_t*>(&SCR_UpdateFrame_Trampoline));
 
         HookManager::CreateHook(Addresses::FS_Read, reinterpret_cast<uintptr_t>(FS_Read_Hook),
                                 reinterpret_cast<uintptr_t*>(&FS_Read_Trampoline));

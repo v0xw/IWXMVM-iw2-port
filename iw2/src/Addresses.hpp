@@ -77,6 +77,7 @@ namespace IWXMVM::IW2::Addresses
     constexpr uintptr_t CG_DrawPlayerSprites = 0x004CBC40;
     constexpr uintptr_t CG_AddViewWeapon = 0x004D6390;
     constexpr uintptr_t CL_FX_AdjustCamera = 0x00402650;
+    constexpr uintptr_t CG_DrawWeapReticle = 0x004C8CB0;  // double __cdecl(); draws the sniper scope overlay when zoomed (else no-op), returns the crosshair fade factor in st0
 
     constexpr uintptr_t CG_Obituary = 0x004E03F0;  // entityState_t* in EAX (otherEntityNum = victim, attackerEntityNum), localClientNum in DIL
 
@@ -149,6 +150,7 @@ namespace IWXMVM::IW2::Addresses
     constexpr uintptr_t cg = 0x014EE080;  // sizeof(cg_t) == 0xF49A0
     constexpr uintptr_t cg_clientNum = 0x014EE084;
     constexpr uintptr_t cg_isDemoPlaying = 0x014EE088;
+    constexpr uintptr_t cg_cubemapShot = 0x014EE08C;  // int; nonzero while rendering a cubemap shot (game skips all 2D)
     constexpr uintptr_t cg_latestSnapshotNum = 0x014EE098;
     constexpr uintptr_t cg_latestSnapshotTime = 0x014EE09C;
     constexpr uintptr_t cg_snap = 0x014EE0A0;      // snapshot_t*

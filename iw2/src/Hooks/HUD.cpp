@@ -34,26 +34,36 @@ namespace IWXMVM::IW2::Hooks::HUD
         MaskedElem maskedElems[2 * 31];
         size_t maskedCount = 0;
 
+        bool IsMaterialElem(int type)
+        {
+            // 6 = setShader icons; 0xB/0xC = the other material draw path
+            return type == 6 || type == 0xB || type == 0xC;
+        }
+
+        const char* GetElemMaterialName(uint8_t* elem)
+        {
+            const auto materialIdx = *reinterpret_cast<int*>(elem + Addresses::hudElem_materialIdx);
+            if (materialIdx <= 0 || materialIdx >= 128)
+                return "";
+
+            const auto offset = reinterpret_cast<int*>(Addresses::materialCSOffsets)[materialIdx];
+            return reinterpret_cast<const char*>(Addresses::materialCSData) + offset;
+        }
+
         bool IsHitmarkerElem(uint8_t* elem)
         {
             const auto type = *reinterpret_cast<int*>(elem + Addresses::hudElem_type);
-            if (type != 0xB && type != 0xC)
-                return false;
-
-            const auto materialIdx = *reinterpret_cast<int*>(elem + Addresses::hudElem_materialIdx);
-            if (materialIdx <= 0 || materialIdx >= 128)
-                return false;
-
-            const auto offset = reinterpret_cast<int*>(Addresses::materialCSOffsets)[materialIdx];
-            const auto name = reinterpret_cast<const char*>(Addresses::materialCSData) + offset;
-            return std::strcmp(name, "damage_feedback") == 0;
+            return IsMaterialElem(type) && std::strcmp(GetElemMaterialName(elem), "damage_feedback") == 0;
         }
 
         bool IsScoreElem(uint8_t* elem)
         {
-            // timers, clocks and plain values - the numeric match-state displays (scores, round timers)
+            // values, timers and clocks - the numeric match-state displays (scores, round timers) - plus the
+            // team icons drawn beside them
             const auto type = *reinterpret_cast<int*>(elem + Addresses::hudElem_type);
-            return type >= 2 && type <= 6;
+            if (type >= 2 && type <= 5 || type == 7)
+                return true;
+            return IsMaterialElem(type) && std::strncmp(GetElemMaterialName(elem), "hudicon_", 8) == 0;
         }
 
         void MaskArray(uint8_t* elems)

@@ -69,18 +69,24 @@ namespace IWXMVM::IW2::Hooks::Playback
     {
         static Structures::dvar_t* xpos = nullptr;
         static Structures::dvar_t* ypos = nullptr;
+        static int lastGoodX = 0;
+        static int lastGoodY = 0;
         if (!xpos || !ypos)
         {
             xpos = Functions::FindDvar("vid_xpos");
             ypos = Functions::FindDvar("vid_ypos");
             if (!xpos || !ypos)
                 return;
+            if (xpos->type == Structures::DVAR_TYPE_INT && ypos->type == Structures::DVAR_TYPE_INT)
+            {
+                // until an on-screen position has been observed, fall back to the engine's registered defaults
+                lastGoodX = xpos->defaultValue.integer;
+                lastGoodY = ypos->defaultValue.integer;
+            }
         }
         if (xpos->type != Structures::DVAR_TYPE_INT || ypos->type != Structures::DVAR_TYPE_INT)
             return;
 
-        static int lastGoodX = 3;
-        static int lastGoodY = 22;
         constexpr int offscreenLimit = -20000;  // minimized windows sit at -32000; real monitors never do
 
         const auto hwnd = *At<HWND>(Addresses::win_hwnd);

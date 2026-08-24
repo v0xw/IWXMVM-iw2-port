@@ -153,20 +153,39 @@ namespace IWXMVM::IW2::Hooks::Playback
     // A demo viewer wants local files always usable, so the restriction is cleared during demo playback.
     // ---------------------------------------------------------------------------------------------------------
 
-    // __thiscall: checksum string in ECX, name string on the stack; modelled as __fastcall with a dummy EDX
-    typedef void(__fastcall* FS_PureServerSetLoadedIwds_t)(const char* checksums, void* unused, const char* names);
-    FS_PureServerSetLoadedIwds_t FS_PureServerSetLoadedIwds_Trampoline = nullptr;
+    // __usercall: checksum string in ECX, name string as a single stack argument that the CALLER cleans up
+    // (verified in the disassembly: plain ret, ECX consumed by the first Cmd_TokenizeString, the name string
+    // read from [esp+0x2020] above the 0x200C chkstk frame). No standard calling convention matches, so the
+    // hook is a naked shim that swaps the arguments for empty strings while a demo is playing.
+    uintptr_t FS_PureServerSetLoadedIwds_Trampoline = 0;
+    static const char* const emptyPureList = "";
 
-    void __fastcall FS_PureServerSetLoadedIwds_Hook(const char* checksums, void* unused, const char* names)
+    static int __cdecl ShouldIgnorePureRestrictions()
     {
-        if (IsDemoPlaying())
-        {
-            LOG_DEBUG("Ignoring pure server IWD restrictions during demo playback");
-            FS_PureServerSetLoadedIwds_Trampoline("", unused, "");
-            return;
-        }
+        if (!IsDemoPlaying())
+            return 0;
 
-        FS_PureServerSetLoadedIwds_Trampoline(checksums, unused, names);
+        LOG_DEBUG("Ignoring pure server IWD restrictions during demo playback");
+        return 1;
+    }
+
+    static int pureHookIgnore = 0;
+    void __declspec(naked) FS_PureServerSetLoadedIwds_Hook()
+    {
+        __asm
+        {
+            pushad
+            call ShouldIgnorePureRestrictions
+            mov pureHookIgnore, eax
+            popad
+            cmp pureHookIgnore, 0
+            je passthrough
+            mov ecx, emptyPureList      // checksum list argument (ECX)
+            mov eax, emptyPureList
+            mov [esp + 4], eax          // name list argument (stack slot; argument slots are callee scratch)
+        passthrough:
+            jmp FS_PureServerSetLoadedIwds_Trampoline
+        }
     }
 
     // ---------------------------------------------------------------------------------------------------------

@@ -54,6 +54,11 @@ namespace IWXMVM::UI
             if (Mod::GetGameInterface()->GetGameState() != Types::GameState::InDemo)
                 return;
 
+            // during demo loading a few frames render before the values are initialized from the game;
+            // pushing the empty defaults would clobber the game state
+            if (!visualsInitialized)
+                return;
+
             if (UIManager::Get().GetSelectedTab() != Tab::Visuals && !UIManager::Get().IsOverlayHidden())
             {
                 ImGui::SetCursorPos(ImVec2(100000, 100000));
@@ -70,7 +75,7 @@ namespace IWXMVM::UI
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar;
         if (ImGui::Begin("Visuals", NULL, flags))
         {
-            if (Mod::GetGameInterface()->GetGameState() != Types::GameState::InDemo)
+            if (Mod::GetGameInterface()->GetGameState() != Types::GameState::InDemo || !visualsInitialized)
             {
                 UI::DrawInaccessibleTabWarning();
                 ImGui::End();

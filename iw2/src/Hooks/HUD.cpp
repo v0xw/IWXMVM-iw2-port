@@ -68,7 +68,7 @@ namespace IWXMVM::IW2::Hooks::HUD
         bool IsHitmarkerElem(uint8_t* elem)
         {
             const auto type = *reinterpret_cast<int*>(elem + Addresses::hudElem_type);
-            return IsMaterialElem(type) && std::strcmp(GetElemMaterialName(elem), "damage_feedback") == 0;
+            return IsMaterialElem(type) && _stricmp(GetElemMaterialName(elem), "damage_feedback") == 0;
         }
 
         bool IsTimerType(int type)
@@ -79,9 +79,10 @@ namespace IWXMVM::IW2::Hooks::HUD
         bool IsBombTimerElem(uint8_t* elem)
         {
             // setClock elements draw the stopwatch dial material, so the bomb timer is a material-type
-            // element showing hudStopwatch (identical in vanilla and zPAM)
+            // element showing hudStopwatch (identical in vanilla and zPAM; material names are stored
+            // lowercased, hence the case-insensitive compare)
             const auto type = *reinterpret_cast<int*>(elem + Addresses::hudElem_type);
-            return IsMaterialElem(type) && std::strcmp(GetElemMaterialName(elem), "hudStopwatch") == 0;
+            return IsMaterialElem(type) && _stricmp(GetElemMaterialName(elem), "hudStopwatch") == 0;
         }
 
         bool IsTimerElem(uint8_t* elem)
@@ -126,7 +127,7 @@ namespace IWXMVM::IW2::Hooks::HUD
                 return false;
             if (type == 2)
                 return true;
-            return IsMaterialElem(type) && std::strncmp(GetElemMaterialName(elem), "hudicon_", 8) == 0;
+            return IsMaterialElem(type) && _strnicmp(GetElemMaterialName(elem), "hudicon_", 8) == 0;
         }
 
         void MaskArray(uint8_t* elems)

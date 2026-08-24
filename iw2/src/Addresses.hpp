@@ -170,8 +170,10 @@ namespace IWXMVM::IW2::Addresses
     constexpr uint32_t snap_hudElemsArchival = 1972;
     constexpr uint32_t hudElem_count = 31;
     constexpr uint32_t hudElem_size = 128;
-    constexpr uint32_t hudElem_type = 0;        // int: 1 text, 2..5 timers/clocks, 6 value, 0xB/0xC material, 13 fade
-    constexpr uint32_t hudElem_materialIdx = 60;  // int: material configstring index (types 0xB/0xC)
+    // hudelem layout from CoD2x cod2_player.h (32 int-sized fields, 128 bytes)
+    constexpr uint32_t hudElem_type = 0;   // int: 1 text, 2 value, 3..5/7 timers+clocks, 6 material icon, 13 fade
+    constexpr uint32_t hudElem_y = 8;      // float
+    constexpr uint32_t hudElem_materialIdx = 60;  // int: material configstring index
     constexpr uint32_t hudElem_foreground = 124;  // int: pass selector compared by CG_Draw2dHudElems @ 0x4DDFF0
     // material configstring lookup used by the hudelem drawer (CG_DrawHudElemMaterial @ 0x4DD9F0):
     // name = (char*)(materialCSData + materialCSOffsets[index]), valid for 0 < index < 128

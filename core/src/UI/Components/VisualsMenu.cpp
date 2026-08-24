@@ -238,6 +238,13 @@ namespace IWXMVM::UI
                     ImGui::Checkbox("##showKilledByCheckbox", &visuals.hudInfo.showKilledByMessages) || modified;
 
                 ImGui::AlignTextToFramePadding();
+                ImGui::Text("Show Timer");
+                ImGui::SameLine();
+                ImGui::SetCursorPosX(checkboxColumnPosition);
+                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
+                modified = ImGui::Checkbox("##showTimerCheckbox", &visuals.hudInfo.showTimer) || modified;
+
+                ImGui::AlignTextToFramePadding();
                 ImGui::Text("Show zPAM Text");
                 ImGui::SameLine();
                 ImGui::SetCursorPosX(checkboxColumnPosition);

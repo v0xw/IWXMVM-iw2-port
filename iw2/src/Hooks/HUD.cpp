@@ -13,6 +13,7 @@ namespace IWXMVM::IW2::Hooks::HUD
     bool showShellshock = true;
     bool showKilledByMessages = true;
     bool showModText = false;
+    bool showTimer = true;
 
     // ---------------------------------------------------------------------------------------------------------
     // Scripted hudelem filtering.
@@ -58,12 +59,22 @@ namespace IWXMVM::IW2::Hooks::HUD
             return IsMaterialElem(type) && std::strcmp(GetElemMaterialName(elem), "damage_feedback") == 0;
         }
 
+        bool IsTimerElem(uint8_t* elem)
+        {
+            const auto type = *reinterpret_cast<int*>(elem + Addresses::hudElem_type);
+            return type >= 3 && type <= 5 || type == 7;
+        }
+
         bool IsScoreElem(uint8_t* elem)
         {
-            // values, timers and clocks - the numeric match-state displays (scores, round timers) - plus the
-            // team icons drawn beside them
+            // the team win score in the top left: value elements plus the hudicon_ team flags beside them.
+            // Numbers in the lower half (like zPAM's players-left counters) belong to their neighbouring label
+            // texts and stay under icons and text.
             const auto type = *reinterpret_cast<int*>(elem + Addresses::hudElem_type);
-            if (type >= 2 && type <= 5 || type == 7)
+            const auto y = *reinterpret_cast<float*>(elem + Addresses::hudElem_y);
+            if (y >= 240.0f)
+                return false;
+            if (type == 2)
                 return true;
             return IsMaterialElem(type) && std::strncmp(GetElemMaterialName(elem), "hudicon_", 8) == 0;
         }
@@ -79,6 +90,8 @@ namespace IWXMVM::IW2::Hooks::HUD
                 bool visible;
                 if (IsHitmarkerElem(elem))
                     visible = showHitmarkers;
+                else if (IsTimerElem(elem))
+                    visible = showTimer;
                 else if (IsScoreElem(elem))
                     visible = showScore;
                 else
@@ -96,7 +109,7 @@ namespace IWXMVM::IW2::Hooks::HUD
         void MaskHiddenHudElems()
         {
             maskedCount = 0;
-            if (showIconsAndText && showHitmarkers && showScore)
+            if (showIconsAndText && showHitmarkers && showScore && showTimer)
                 return;
 
             const auto snap = *Structures::At<uint8_t*>(Addresses::cg_nextSnap);

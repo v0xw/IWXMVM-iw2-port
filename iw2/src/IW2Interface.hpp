@@ -193,6 +193,13 @@ namespace IWXMVM::IW2
 
                 std::filesystem::copy(demoPath, targetPath);
 
+                // loading a demo on top of a live session (another demo playing, or the leftovers of a
+                // failed load) makes the engine trip over half-torn-down assets ("unknown anim tree",
+                // hangs on the load screen), so give it its full teardown first. Cbuf executes the
+                // commands in order.
+                if (*Structures::At<int>(Addresses::clc_state) != 0)
+                    Functions::Cbuf_AddText("disconnect\n");
+
                 // the "demo" command appends ".dm_1" itself; quote the name (zPAM demo names contain '#')
                 const auto stem = targetPath.filename().replace_extension().string();
                 Functions::Cbuf_AddText(std::format("demo \"{0}/{1}\"\n", DEMO_TEMP_DIRECTORY, stem));

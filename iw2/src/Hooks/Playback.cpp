@@ -58,6 +58,46 @@ namespace IWXMVM::IW2::Hooks::Playback
         }
     }
 
+    // ---------------------------------------------------------------------------------------------------------
+    // vid_xpos / vid_ypos are archived and updated from WM_MOVE - including the (-32000, -32000) position
+    // Windows assigns to minimized windows. Quitting (or crashing) while minimized then writes those values to
+    // config_mp.cfg, and the next windowed launch creates the window entirely off-screen. Keep the dvars pinned
+    // to the last on-screen position so a bogus one can never be archived.
+    // ---------------------------------------------------------------------------------------------------------
+
+    void SanitizeWindowPositionDvars()
+    {
+        static Structures::dvar_t* xpos = nullptr;
+        static Structures::dvar_t* ypos = nullptr;
+        if (!xpos || !ypos)
+        {
+            xpos = Functions::FindDvar("vid_xpos");
+            ypos = Functions::FindDvar("vid_ypos");
+            if (!xpos || !ypos)
+                return;
+        }
+        if (xpos->type != Structures::DVAR_TYPE_INT || ypos->type != Structures::DVAR_TYPE_INT)
+            return;
+
+        static int lastGoodX = 3;
+        static int lastGoodY = 22;
+        constexpr int offscreenLimit = -20000;  // minimized windows sit at -32000; real monitors never do
+
+        const auto hwnd = *At<HWND>(Addresses::win_hwnd);
+        const bool iconic = hwnd && ::IsIconic(hwnd);
+
+        if (!iconic && xpos->value.integer > offscreenLimit && ypos->value.integer > offscreenLimit)
+        {
+            lastGoodX = xpos->value.integer;
+            lastGoodY = ypos->value.integer;
+        }
+        else
+        {
+            xpos->value.integer = lastGoodX;
+            ypos->value.integer = lastGoodY;
+        }
+    }
+
     void SetMouseCaptured(bool captured)
     {
         mouseCaptured = captured;
@@ -80,6 +120,7 @@ namespace IWXMVM::IW2::Hooks::Playback
     int __cdecl Com_ModifyMsec_Hook(int msec)
     {
         ApplyMouseCapture();
+        SanitizeWindowPositionDvars();
 
         const auto gameMsec = Com_ModifyMsec_Trampoline(msec);
         const auto delta = Components::Playback::CalculatePlaybackDelta(gameMsec);

@@ -149,7 +149,6 @@ namespace IWXMVM::IW2::Hooks::Playback
         ApplyMouseCapture();
         SanitizeWindowPositionDvars();
         HUD::SuppressShellshock();
-        HUD::SuppressCursorHints();
         SuppressZpamText();
 
         const auto gameMsec = Com_ModifyMsec_Trampoline(msec);

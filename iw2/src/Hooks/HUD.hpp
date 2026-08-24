@@ -17,6 +17,5 @@ namespace IWXMVM::IW2::Hooks::HUD
     // zeroes the snapshot shellshock state while showShellshock is off; called every frame
     void SuppressShellshock();
 
-    // zeroes the snapshot cursor hint state while showHints is off; called every frame
-    void SuppressCursorHints();
+    // clears the latched cursor hint state while showHints is off; called from the CG_Draw2D hook
 }  // namespace IWXMVM::IW2::Hooks::HUD

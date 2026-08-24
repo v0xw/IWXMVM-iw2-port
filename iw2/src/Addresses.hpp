@@ -164,10 +164,11 @@ namespace IWXMVM::IW2::Addresses
     constexpr uint32_t snap_shellshockIndex = 1508;     // int (cgs shellshock parms index)
     constexpr uint32_t snap_shellshockTime = 1512;      // int (server time the shock started)
     constexpr uint32_t snap_shellshockDuration = 1516;  // int
-    // inside snapshot_t: the playerstate's cursor hint (weapon pickup / use / plant hints)
-    constexpr uint32_t snap_cursorHint = 1444;          // int
-    constexpr uint32_t snap_cursorHintString = 1448;    // int (configstring index)
-    constexpr uint32_t snap_cursorHintEntIndex = 1452;  // int
+    // the cgame latches the playerstate cursor hint (snapshot offset 1444) into these globals each frame,
+    // where it lingers and fades; the hint drawer reads the latch, not the snapshot
+    constexpr uintptr_t cg_cursorHintLatched = 0x01519E68;  // int, hint type (0 = none)
+    constexpr uintptr_t cg_cursorHintTime = 0x01519E6C;     // int, cg.time of the latch
+    constexpr uintptr_t cg_cursorHintString = 0x01519E74;   // int, configstring index
     // inside snapshot_t: the playerstate's scripted hudelems, two arrays of 31 elements (128 bytes each);
     // collection stops at the first element with type 0 (CG_GetSortedHudElems @ 0x4DDF90)
     constexpr uint32_t snap_hudElemsCurrent = 5940;

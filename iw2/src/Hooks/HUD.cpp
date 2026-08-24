@@ -151,8 +151,11 @@ namespace IWXMVM::IW2::Hooks::HUD
     typedef void(__cdecl* CG_Draw2D_t)();
     CG_Draw2D_t CG_Draw2D_Trampoline = nullptr;
 
+    void SuppressCursorHints();
+
     void __cdecl CG_Draw2D_Hook()
     {
+        SuppressCursorHints();
         MaskHiddenHudElems();
         CG_Draw2D_Trampoline();
         RestoreHudElems();
@@ -193,9 +196,11 @@ namespace IWXMVM::IW2::Hooks::HUD
     }
 
     // ---------------------------------------------------------------------------------------------------------
-    // Cursor hints (weapon pickup, use / bomb plant prompts, mantle) come from the snapshot playerstate; while
-    // the hints toggle is off the fields are zeroed each frame. The mantle hint additionally has its own dvar.
-    // zPAM's plant / defuse progress bar is unrelated (scripted hudelems) and stays visible.
+    // Cursor hints (weapon pickup, use / bomb plant prompts, mantle) are latched from the snapshot playerstate
+    // into cg globals during the frame, where they linger and fade - the drawer reads the latch. It is cleared
+    // right before CG_Draw2D runs, after the frame's latching already happened, so nothing can re-arm it. The
+    // mantle hint additionally has its own dvar. zPAM's plant / defuse progress bar is unrelated (scripted
+    // hudelems) and stays visible.
     // ---------------------------------------------------------------------------------------------------------
 
     void SuppressCursorHints()
@@ -210,16 +215,9 @@ namespace IWXMVM::IW2::Hooks::HUD
         if (showHints)
             return;
 
-        for (const auto address : {Addresses::cg_snap, Addresses::cg_nextSnap})
-        {
-            const auto snap = *Structures::At<uint8_t*>(address);
-            if (snap == nullptr)
-                continue;
-
-            *reinterpret_cast<int*>(snap + Addresses::snap_cursorHint) = 0;
-            *reinterpret_cast<int*>(snap + Addresses::snap_cursorHintString) = 0;
-            *reinterpret_cast<int*>(snap + Addresses::snap_cursorHintEntIndex) = 0;
-        }
+        *Structures::At<int>(Addresses::cg_cursorHintLatched) = 0;
+        *Structures::At<int>(Addresses::cg_cursorHintTime) = 0;
+        *Structures::At<int>(Addresses::cg_cursorHintString) = 0;
     }
 
     void Install()

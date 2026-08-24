@@ -182,8 +182,11 @@ namespace IWXMVM::UI
             ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
             modified = ImGui::Checkbox("##showPlayerHUDCheckbox", &visuals.hudInfo.showPlayerHUD) || modified;
 
+            const bool isIW2 = Mod::GetGameInterface()->GetGame() == Types::Game::IW2;
+
             ImGui::AlignTextToFramePadding();
-            ImGui::Text("Show Shellshock/Flashbang");
+            // CoD2 has no flashbangs
+            ImGui::Text(isIW2 ? "Show Shellshock" : "Show Shellshock/Flashbang");
             ImGui::SameLine();
             ImGui::SetCursorPosX(checkboxColumnPosition);
             ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
@@ -216,6 +219,16 @@ namespace IWXMVM::UI
             ImGui::SetCursorPosX(checkboxColumnPosition);
             ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
             modified = ImGui::Checkbox("##showBloodOverlayCheckbox", &visuals.hudInfo.showBloodOverlay) || modified;
+
+            if (isIW2)
+            {
+                ImGui::AlignTextToFramePadding();
+                ImGui::Text("Show Hitmarkers");
+                ImGui::SameLine();
+                ImGui::SetCursorPosX(checkboxColumnPosition);
+                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
+                modified = ImGui::Checkbox("##showHitmarkersCheckbox", &visuals.hudInfo.showHitmarkers) || modified;
+            }
 
             ImGui::Dummy(ImVec2(0.0f, 20.0f));
 

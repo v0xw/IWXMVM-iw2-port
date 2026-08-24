@@ -9,9 +9,6 @@ namespace IWXMVM::IW2::Patches
 
     struct IW2Patches
     {
-        // Hides scripted hud elements (objective icons, timers, ...). Toggled from the Visuals tab.
-        ReturnPatch CG_Draw2dHudElems{Addresses::CG_Draw2dHudElems, PatchApplySetting::Deferred};
-
         // Full-screen red damage blend ("blood overlay") drawn when the POV player takes damage.
         // int __cdecl(); toggled by the Visuals tab blood overlay switch.
         ReturnPatch CG_DrawDamageBlend{Addresses::CG_DrawDamageBlend, PatchApplySetting::Deferred};

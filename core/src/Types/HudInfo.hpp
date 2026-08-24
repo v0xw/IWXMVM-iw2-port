@@ -16,5 +16,9 @@ namespace IWXMVM::Types
         bool showKillfeed;
         glm::vec3 killfeedTeam1Color;
         glm::vec3 killfeedTeam2Color;
+
+        // appended after the fields above so game modules using positional aggregate
+        // initialization keep compiling; games that do not support it can ignore it
+        bool showHitmarkers = true;
     };
 }  // namespace IWXMVM::Types

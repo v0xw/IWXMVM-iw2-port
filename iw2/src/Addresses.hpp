@@ -156,6 +156,24 @@ namespace IWXMVM::IW2::Addresses
     constexpr uintptr_t cg_latestSnapshotTime = 0x014EE09C;
     constexpr uintptr_t cg_snap = 0x014EE0A0;      // snapshot_t*
     constexpr uintptr_t cg_nextSnap = 0x014EE0A4;  // snapshot_t*
+    // inside snapshot_t: the playerstate's shellshock state (CG_UpdateShellShock @ 0x4D3260 deactivates
+    // cleanly - blur, sound, turn cap - when the start time reads 0)
+    constexpr uint32_t snap_shellshockIndex = 1508;     // int (cgs shellshock parms index)
+    constexpr uint32_t snap_shellshockTime = 1512;      // int (server time the shock started)
+    constexpr uint32_t snap_shellshockDuration = 1516;  // int
+    // inside snapshot_t: the playerstate's scripted hudelems, two arrays of 31 elements (128 bytes each);
+    // collection stops at the first element with type 0 (CG_GetSortedHudElems @ 0x4DDF90)
+    constexpr uint32_t snap_hudElemsCurrent = 5940;
+    constexpr uint32_t snap_hudElemsArchival = 1972;
+    constexpr uint32_t hudElem_count = 31;
+    constexpr uint32_t hudElem_size = 128;
+    constexpr uint32_t hudElem_type = 0;        // int: 1 text, 2..5 timers/clocks, 6 value, 0xB/0xC material, 13 fade
+    constexpr uint32_t hudElem_materialIdx = 60;  // int: material configstring index (types 0xB/0xC)
+    constexpr uint32_t hudElem_foreground = 124;  // int: pass selector compared by CG_Draw2dHudElems @ 0x4DDFF0
+    // material configstring lookup used by the hudelem drawer (CG_DrawHudElemMaterial @ 0x4DD9F0):
+    // name = (char*)(materialCSData + materialCSOffsets[index]), valid for 0 < index < 128
+    constexpr uintptr_t materialCSOffsets = 0x0096F5D4;  // int[128]
+    constexpr uintptr_t materialCSData = 0x0096FD5C;     // char blob
     constexpr uintptr_t cg_predictedPlayerState = 0x014EE080 + 0x25BC4;
     constexpr uintptr_t cg_refdef = 0x015165F0;           // refdef_t
     constexpr uintptr_t cg_refdefViewAngles = 0x01516648;  // vec3

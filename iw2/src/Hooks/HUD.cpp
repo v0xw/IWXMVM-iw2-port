@@ -3,22 +3,105 @@
 
 #include "Utilities/HookManager.hpp"
 #include "../Addresses.hpp"
-#include "../Patches.hpp"
 #include "../Structures.hpp"
 
 namespace IWXMVM::IW2::Hooks::HUD
 {
     bool showIconsAndText = true;
+    bool showHitmarkers = true;
+    bool showScore = true;
+    bool showShellshock = true;
 
-    void Apply()
+    // ---------------------------------------------------------------------------------------------------------
+    // Scripted hudelem filtering.
+    //
+    // All scripted hud elements (server / GSC created: hint icons, timers, scores, zPAM's hitmarkers, ...) live
+    // in two arrays inside the current snapshot and are drawn by CG_Draw2dHudElems, which draws the elements
+    // whose "foreground" field matches the pass it renders. To hide a subset we temporarily give the unwanted
+    // elements a foreground value no pass ever asks for while CG_Draw2D runs, and restore them afterwards.
+    // ---------------------------------------------------------------------------------------------------------
+
+    namespace
     {
-        auto& patches = Patches::GetGamePatches();
+        constexpr int MASKED_FOREGROUND = 0x7FFFFFFF;
 
-        if (showIconsAndText)
-            patches.CG_Draw2dHudElems.Revert();
-        else
-            patches.CG_Draw2dHudElems.Apply();
-    }
+        struct MaskedElem
+        {
+            int* foreground;
+            int original;
+        };
+        // two arrays of 31 elements each
+        MaskedElem maskedElems[2 * 31];
+        size_t maskedCount = 0;
+
+        bool IsHitmarkerElem(uint8_t* elem)
+        {
+            const auto type = *reinterpret_cast<int*>(elem + Addresses::hudElem_type);
+            if (type != 0xB && type != 0xC)
+                return false;
+
+            const auto materialIdx = *reinterpret_cast<int*>(elem + Addresses::hudElem_materialIdx);
+            if (materialIdx <= 0 || materialIdx >= 128)
+                return false;
+
+            const auto offset = reinterpret_cast<int*>(Addresses::materialCSOffsets)[materialIdx];
+            const auto name = reinterpret_cast<const char*>(Addresses::materialCSData) + offset;
+            return std::strcmp(name, "damage_feedback") == 0;
+        }
+
+        bool IsScoreElem(uint8_t* elem)
+        {
+            // timers, clocks and plain values - the numeric match-state displays (scores, round timers)
+            const auto type = *reinterpret_cast<int*>(elem + Addresses::hudElem_type);
+            return type >= 2 && type <= 6;
+        }
+
+        void MaskArray(uint8_t* elems)
+        {
+            for (uint32_t i = 0; i < Addresses::hudElem_count; i++)
+            {
+                const auto elem = elems + i * Addresses::hudElem_size;
+                if (*reinterpret_cast<int*>(elem + Addresses::hudElem_type) == 0)
+                    break;  // the game stops collecting at the first empty element too
+
+                bool visible;
+                if (IsHitmarkerElem(elem))
+                    visible = showHitmarkers;
+                else if (IsScoreElem(elem))
+                    visible = showScore;
+                else
+                    visible = showIconsAndText;
+
+                if (!visible)
+                {
+                    const auto foreground = reinterpret_cast<int*>(elem + Addresses::hudElem_foreground);
+                    maskedElems[maskedCount++] = {foreground, *foreground};
+                    *foreground = MASKED_FOREGROUND;
+                }
+            }
+        }
+
+        void MaskHiddenHudElems()
+        {
+            maskedCount = 0;
+            if (showIconsAndText && showHitmarkers && showScore)
+                return;
+
+            const auto snap = *Structures::At<uint8_t*>(Addresses::cg_nextSnap);
+            if (snap == nullptr)
+                return;
+
+            MaskArray(snap + Addresses::snap_hudElemsCurrent);
+            MaskArray(snap + Addresses::snap_hudElemsArchival);
+        }
+
+        void RestoreHudElems()
+        {
+            for (size_t i = 0; i < maskedCount; i++)
+                *maskedElems[i].foreground = maskedElems[i].original;
+            maskedCount = 0;
+        }
+    }  // namespace
 
     // ---------------------------------------------------------------------------------------------------------
     // CG_Draw2D returns immediately when cg_draw2D is 0, which also drops the sniper scope overlay - leaving a
@@ -32,7 +115,9 @@ namespace IWXMVM::IW2::Hooks::HUD
 
     void __cdecl CG_Draw2D_Hook()
     {
+        MaskHiddenHudElems();
         CG_Draw2D_Trampoline();
+        RestoreHudElems();
 
         if (*Structures::At<int>(Addresses::cg_cubemapShot) == 0)  // same gate the original checks first
         {
@@ -43,6 +128,29 @@ namespace IWXMVM::IW2::Hooks::HUD
                 typedef double(__cdecl * CG_DrawWeapReticle_t)();
                 reinterpret_cast<CG_DrawWeapReticle_t>(Addresses::CG_DrawWeapReticle)();
             }
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------------------
+    // Shellshock: the effect state (blur, sound filtering, view kick) is driven from the snapshot playerstate.
+    // CG_UpdateShellShock deactivates everything cleanly when the start time reads 0, so while the toggle is
+    // off we zero the fields in the snapshots the cgame reads. Called every frame from the Com_ModifyMsec hook.
+    // ---------------------------------------------------------------------------------------------------------
+
+    void SuppressShellshock()
+    {
+        if (showShellshock)
+            return;
+
+        for (const auto address : {Addresses::cg_snap, Addresses::cg_nextSnap})
+        {
+            const auto snap = *Structures::At<uint8_t*>(address);
+            if (snap == nullptr)
+                continue;
+
+            *reinterpret_cast<int*>(snap + Addresses::snap_shellshockIndex) = 0;
+            *reinterpret_cast<int*>(snap + Addresses::snap_shellshockTime) = 0;
+            *reinterpret_cast<int*>(snap + Addresses::snap_shellshockDuration) = 0;
         }
     }
 

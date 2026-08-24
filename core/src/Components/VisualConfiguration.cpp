@@ -223,6 +223,8 @@ namespace IWXMVM::Components
                 visuals.hudInfo.showCrosshair = value;
             else if (dvar == "iwxmvm_ui_showscore")
                 visuals.hudInfo.showScore = value;
+            else if (dvar == "iwxmvm_ui_showhitmarkers")
+                visuals.hudInfo.showHitmarkers = value;
             else if (dvar == "ui_hud_obituaries")
                 visuals.hudInfo.showKillfeed = value;
             else if (dvar == "g_teamcolor_allies")
@@ -298,6 +300,7 @@ namespace IWXMVM::Components
         out << "cg_drawshellshock " << settings.hudInfo.showShellshock << "\n";
         out << "ui_drawcrosshair " << settings.hudInfo.showCrosshair << "\n";
         out << "iwxmvm_ui_showscore " << settings.hudInfo.showScore << "\n";
+        out << "iwxmvm_ui_showhitmarkers " << settings.hudInfo.showHitmarkers << "\n";
         out << "iwxmvm_ui_showothertext " << settings.hudInfo.showIconsAndText << "\n";
         out << "iwxmvm_ui_showbloodoverlay " << settings.hudInfo.showBloodOverlay << "\n";
         out << "ui_hud_obituaries " << settings.hudInfo.showKillfeed << "\n";

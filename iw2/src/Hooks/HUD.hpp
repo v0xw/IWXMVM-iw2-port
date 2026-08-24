@@ -3,7 +3,12 @@
 namespace IWXMVM::IW2::Hooks::HUD
 {
     extern bool showIconsAndText;
+    extern bool showHitmarkers;
+    extern bool showScore;
+    extern bool showShellshock;
 
     void Install();
-    void Apply();
+
+    // zeroes the snapshot shellshock state while showShellshock is off; called every frame
+    void SuppressShellshock();
 }  // namespace IWXMVM::IW2::Hooks::HUD

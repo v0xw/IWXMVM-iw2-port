@@ -10,6 +10,7 @@
 #include "../Structures.hpp"
 #include "../Functions.hpp"
 #include "../DemoParser.hpp"
+#include "HUD.hpp"
 #include "Kills.hpp"
 
 namespace IWXMVM::IW2::Hooks::Playback
@@ -127,6 +128,7 @@ namespace IWXMVM::IW2::Hooks::Playback
     {
         ApplyMouseCapture();
         SanitizeWindowPositionDvars();
+        HUD::SuppressShellshock();
 
         const auto gameMsec = Com_ModifyMsec_Trampoline(msec);
         const auto delta = Components::Playback::CalculatePlaybackDelta(gameMsec);

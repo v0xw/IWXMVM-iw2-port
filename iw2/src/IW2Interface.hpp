@@ -412,12 +412,13 @@ namespace IWXMVM::IW2
         {
             Types::HudInfo hudInfo{};
             hudInfo.show2DElements = GetDvarBool("cg_draw2D");
-            hudInfo.showPlayerHUD = GetDvarBool("cg_drawHealth");
-            hudInfo.showShellshock = true;
+            hudInfo.showPlayerHUD = GetDvarBool("hud_enable");
+            hudInfo.showShellshock = Hooks::HUD::showShellshock;
             hudInfo.showCrosshair = GetDvarBool("cg_drawCrosshair");
-            hudInfo.showScore = true;
+            hudInfo.showScore = Hooks::HUD::showScore;
             hudInfo.showIconsAndText = Hooks::HUD::showIconsAndText;
-            hudInfo.showBloodOverlay = GetDvarBool("cg_blood");
+            hudInfo.showHitmarkers = Hooks::HUD::showHitmarkers;
+            hudInfo.showBloodOverlay = !Patches::GetGamePatches().CG_DrawDamageBlend.IsApplied();
             hudInfo.showKillfeed = GetDvarBool("cg_drawGameMessages");
             hudInfo.killfeedTeam1Color = ReadVec3Dvar("g_TeamColor_Allies", glm::vec3(0.5f, 0.5f, 1.0f));
             hudInfo.killfeedTeam2Color = ReadVec3Dvar("g_TeamColor_Axis", glm::vec3(1.0f, 0.5f, 0.5f));
@@ -435,7 +436,9 @@ namespace IWXMVM::IW2
                 hudInfo.showKillfeed = false;
             }
 
-            SetDvarBool("cg_drawHealth", hudInfo.showPlayerHUD);
+            // the CoD2 player HUD (compass, health bar, ammo, stance, offhand) is menu-driven and has its
+            // own master switch
+            SetDvarBool("hud_enable", hudInfo.showPlayerHUD);
             SetDvarBool("cg_drawCrosshairNames", hudInfo.showPlayerHUD);
             if (auto damageIconTime = Functions::FindDvar("cg_hudDamageIconTime");
                 damageIconTime && damageIconTime->type == Structures::DVAR_TYPE_INT)
@@ -452,7 +455,9 @@ namespace IWXMVM::IW2
             SetDvarBool("cg_drawGameMessages", hudInfo.showKillfeed);
 
             Hooks::HUD::showIconsAndText = hudInfo.showIconsAndText;
-            Hooks::HUD::Apply();
+            Hooks::HUD::showHitmarkers = hudInfo.showHitmarkers;
+            Hooks::HUD::showScore = hudInfo.showScore;
+            Hooks::HUD::showShellshock = hudInfo.showShellshock;
 
             WriteVec3Dvar("g_TeamColor_Allies", hudInfo.killfeedTeam1Color);
             WriteVec3Dvar("g_TeamColor_Axis", hudInfo.killfeedTeam2Color);

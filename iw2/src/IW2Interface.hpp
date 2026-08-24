@@ -446,6 +446,8 @@ namespace IWXMVM::IW2
                 hudInfo.showPlayerHUD = false;
                 hudInfo.showCrosshair = false;
                 hudInfo.showKillfeed = false;
+                // drawn outside the cg_draw2D-gated pass, so it must be forced off explicitly
+                hudInfo.showTeammateIcons = false;
             }
 
             // the CoD2 player HUD (compass, health bar, ammo, stance, offhand) is menu-driven and has its

@@ -442,7 +442,13 @@ namespace IWXMVM::IW2
                 damageIconTime->value.integer = hudInfo.showPlayerHUD ? 2000 : 0;
 
             SetDvarBool("cg_drawCrosshair", hudInfo.showCrosshair);
+            // cg_blood only controls the 3D blood puffs; the visible screen "blood overlay" is the
+            // full-screen damage blend, which has no dvar - patch its draw function out instead
             SetDvarBool("cg_blood", hudInfo.showBloodOverlay);
+            if (hudInfo.showBloodOverlay)
+                Patches::GetGamePatches().CG_DrawDamageBlend.Revert();
+            else
+                Patches::GetGamePatches().CG_DrawDamageBlend.Apply();
             SetDvarBool("cg_drawGameMessages", hudInfo.showKillfeed);
 
             Hooks::HUD::showIconsAndText = hudInfo.showIconsAndText;

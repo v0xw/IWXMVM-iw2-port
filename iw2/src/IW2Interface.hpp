@@ -454,7 +454,7 @@ namespace IWXMVM::IW2
             hudInfo.showKillfeedBombEvents = Hooks::HUD::showKillfeedBombEvents;
             hudInfo.showKillfeedOtherInfo = Hooks::HUD::showKillfeedOtherInfo;
             hudInfo.showKillfeedModMessages = Hooks::HUD::showKillfeedModMessages;
-            hudInfo.showBloodOverlay = !Patches::GetGamePatches().CG_DrawDamageBlend.IsApplied();
+            hudInfo.showBloodOverlay = Hooks::HUD::showBloodOverlay;
             hudInfo.showKillfeed = Hooks::HUD::showKillfeed;
             hudInfo.killfeedTeam1Color = ReadVec3Dvar("g_TeamColor_Allies", glm::vec3(0.5f, 0.5f, 1.0f));
             hudInfo.killfeedTeam2Color = ReadVec3Dvar("g_TeamColor_Axis", glm::vec3(1.0f, 0.5f, 0.5f));
@@ -488,12 +488,10 @@ namespace IWXMVM::IW2
 
             SetDvarBool("cg_drawCrosshair", hudInfo.showCrosshair);
             // cg_blood only controls the 3D blood puffs; the visible screen "blood overlay" is the
-            // full-screen damage blend, which has no dvar - patch its draw function out instead
+            // full-screen damage blend, which has no dvar - its draw function patch is managed per
+            // frame in the HUD hook (it also depends on the active camera mode)
             SetDvarBool("cg_blood", hudInfo.showBloodOverlay);
-            if (hudInfo.showBloodOverlay)
-                Patches::GetGamePatches().CG_DrawDamageBlend.Revert();
-            else
-                Patches::GetGamePatches().CG_DrawDamageBlend.Apply();
+            Hooks::HUD::showBloodOverlay = hudInfo.showBloodOverlay;
             SetDvarBool("cg_drawGameMessages", hudInfo.showKillfeed);
 
             Hooks::HUD::showHitmarkers = hudInfo.showHitmarkers;

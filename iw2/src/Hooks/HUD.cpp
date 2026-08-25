@@ -31,6 +31,20 @@ namespace IWXMVM::IW2::Hooks::HUD
     bool showKillfeedBombEvents = true;
     bool showKillfeedOtherInfo = false;
     bool showKillfeedModMessages = false;
+    bool showBloodOverlay = true;
+
+    bool PlayerFeedbackVisible()
+    {
+        if (!Structures::IsDemoPlaying())
+            return true;
+
+        const auto& camera = Components::CameraManager::Get().GetActiveCamera();
+        if (!camera)
+            return true;
+
+        const auto mode = camera->GetMode();
+        return mode == Components::Camera::Mode::FirstPerson || mode == Components::Camera::Mode::ThirdPerson;
+    }
 
     // ---------------------------------------------------------------------------------------------------------
     // Scripted hudelem filtering.
@@ -53,6 +67,9 @@ namespace IWXMVM::IW2::Hooks::HUD
         // two arrays of 31 elements each
         MaskedElem maskedElems[2 * 31];
         size_t maskedCount = 0;
+
+        // evaluated once per frame in MaskHiddenHudElems
+        bool hitmarkersVisibleThisFrame = true;
 
         bool IsMaterialElem(int type)
         {
@@ -154,7 +171,7 @@ namespace IWXMVM::IW2::Hooks::HUD
 
                 bool visible;
                 if (IsHitmarkerElem(elem))
-                    visible = showHitmarkers;
+                    visible = hitmarkersVisibleThisFrame;
                 else if (IsBombTimerElem(elem))
                     visible = showBombTimer;
                 else if (IsTimerElem(elem))
@@ -180,7 +197,9 @@ namespace IWXMVM::IW2::Hooks::HUD
         void MaskHiddenHudElems()
         {
             maskedCount = 0;
-            if (showHitmarkers && showScore && showTimer && showBombTimer && showPlayersLeftAlive && showModText)
+            hitmarkersVisibleThisFrame = showHitmarkers && PlayerFeedbackVisible();
+            if (hitmarkersVisibleThisFrame && showScore && showTimer && showBombTimer && showPlayersLeftAlive &&
+                showModText)
                 return;
 
             const auto snap = *Structures::At<uint8_t*>(Addresses::cg_nextSnap);
@@ -211,8 +230,58 @@ namespace IWXMVM::IW2::Hooks::HUD
 
     void SuppressCursorHints();
 
+    // ---------------------------------------------------------------------------------------------------------
+    // Player feedback that is controlled through dvars or patches (damage blend, directional damage icons,
+    // grenade indicator, player HUD, crosshair) is re-evaluated every frame so it follows both the user's
+    // toggles and the active camera mode; camera switches don't run through SetHudInfo.
+    // ---------------------------------------------------------------------------------------------------------
+
+    namespace
+    {
+        void SetBoolDvar(const char* name, bool value)
+        {
+            if (auto dvar = Functions::FindDvar(name); dvar && dvar->type == Structures::DVAR_TYPE_BOOL)
+                dvar->value.boolean = value;
+        }
+
+        void ApplyPlayerFeedbackSuppression()
+        {
+            if (!Structures::IsDemoPlaying())
+                return;
+
+            const bool feedback = PlayerFeedbackVisible();
+
+            if (showBloodOverlay && feedback)
+                Patches::GetGamePatches().CG_DrawDamageBlend.Revert();
+            else
+                Patches::GetGamePatches().CG_DrawDamageBlend.Apply();
+
+            if (auto damageIconTime = Functions::FindDvar("cg_hudDamageIconTime");
+                damageIconTime && damageIconTime->type == Structures::DVAR_TYPE_INT)
+                damageIconTime->value.integer = (showPlayerHUD && feedback) ? 2000 : 0;
+
+            // range 0 keeps the grenade icon and danger pointer permanently out of range
+            static float grenadeIconRange = -1.0f;
+            if (auto grenadeRange = Functions::FindDvar("cg_hudGrenadeIconMaxRange");
+                grenadeRange && grenadeRange->type == Structures::DVAR_TYPE_FLOAT)
+            {
+                if (grenadeRange->value.decimal != 0.0f)
+                    grenadeIconRange = grenadeRange->value.decimal;
+                if (feedback && grenadeIconRange > 0.0f)
+                    grenadeRange->value.decimal = grenadeIconRange;
+                else
+                    grenadeRange->value.decimal = 0.0f;
+            }
+
+            SetBoolDvar("hud_enable", showPlayerHUD && feedback);
+            SetBoolDvar("cg_drawCrosshairNames", showPlayerHUD && feedback);
+            SetBoolDvar("cg_drawCrosshair", showCrosshair && feedback);
+        }
+    }  // namespace
+
     void __cdecl CG_Draw2D_Hook()
     {
+        ApplyPlayerFeedbackSuppression();
         SuppressCursorHints();
         MaskHiddenHudElems();
         CG_Draw2D_Trampoline();
@@ -238,7 +307,7 @@ namespace IWXMVM::IW2::Hooks::HUD
 
     void SuppressShellshock()
     {
-        if (showShellshock)
+        if (showShellshock && PlayerFeedbackVisible())
             return;
 
         for (const auto address : {Addresses::cg_snap, Addresses::cg_nextSnap})
@@ -266,11 +335,13 @@ namespace IWXMVM::IW2::Hooks::HUD
         if (!Structures::IsDemoPlaying())
             return;
 
+        const bool hintsVisible = showHints && PlayerFeedbackVisible();
+
         if (const auto mantleHint = Functions::FindDvar("cg_drawMantleHint");
             mantleHint && mantleHint->type == Structures::DVAR_TYPE_BOOL)
-            mantleHint->value.boolean = showHints;
+            mantleHint->value.boolean = hintsVisible;
 
-        if (showHints)
+        if (hintsVisible)
         {
             Patches::GetGamePatches().CG_UpdateCursorHint.Revert();
             return;

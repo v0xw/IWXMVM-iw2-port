@@ -198,11 +198,12 @@ namespace IWXMVM::IW2::Hooks::Kills
         return markers;
     }
 
-    // clears the "You killed X" / "Killed by X" centerprint the original just queued when it is toggled off;
-    // other centerprints (round messages etc.) are untouched since this only runs right after an obituary
+    // clears the "You killed X" / "Killed by X" centerprint the original just queued when it is toggled off
+    // or the camera is not showing the POV player's view; other centerprints (round messages etc.) are
+    // untouched since this only runs right after an obituary
     static void __cdecl SuppressKilledByMessage()
     {
-        if (!HUD::showKilledByMessages)
+        if (!HUD::showKilledByMessages || !HUD::PlayerFeedbackVisible())
             *At<int>(Addresses::cg_centerPrintTime) = 0;
     }
 

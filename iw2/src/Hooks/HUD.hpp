@@ -21,8 +21,14 @@ namespace IWXMVM::IW2::Hooks::HUD
     extern bool showKillfeedBombEvents;
     extern bool showKillfeedOtherInfo;
     extern bool showKillfeedModMessages;
+    extern bool showBloodOverlay;
 
     void Install();
+
+    // Player-bound feedback (hitmarkers, kill texts, damage blend, grenade indicator, shellshock,
+    // hints, crosshair, player HUD) only makes sense while the view is the POV player's own; in
+    // mod-controlled cameras (free, dolly, bone, orbit) it is suppressed regardless of the toggles.
+    bool PlayerFeedbackVisible();
 
     // zeroes the snapshot shellshock state while showShellshock is off; called every frame
     void SuppressShellshock();

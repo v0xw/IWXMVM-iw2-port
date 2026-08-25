@@ -332,7 +332,13 @@ namespace IWXMVM::IW2::Hooks::HUD
                 return false;
 
             RB_SetViewportCmd_Original = reinterpret_cast<RB_Command_t>(original);
+
+            // the dispatch table lives in the renderer DLL's read-only .rdata
+            DWORD oldProtection = 0;
+            if (!::VirtualProtect(entry, sizeof(void*), PAGE_READWRITE, &oldProtection))
+                return false;
             *entry = reinterpret_cast<void*>(RB_SetViewportCmd_Wrapper);
+            ::VirtualProtect(entry, sizeof(void*), oldProtection, &oldProtection);
             return true;
         }
     }  // namespace

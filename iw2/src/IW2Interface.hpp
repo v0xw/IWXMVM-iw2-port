@@ -16,6 +16,7 @@
 #include "Events.hpp"
 #include "Components/CameraManager.hpp"
 #include "Components/Rewinding.hpp"
+#include "Graphics/DofSettings.hpp"
 
 #include "glm/vec3.hpp"
 #include "glm/gtc/type_ptr.hpp"
@@ -363,12 +364,13 @@ namespace IWXMVM::IW2
 
         Types::DoF GetDof() final
         {
-            // CoD2 has no depth of field
-            return Types::DoF{};
+            // CoD2 has no engine depth of field; ours is a post process (see GraphicsManager::ApplyDof)
+            return GFX::GetDofSettings();
         }
 
-        void SetDof(Types::DoF) final
+        void SetDof(Types::DoF dof) final
         {
+            GFX::SetDofSettings(dof);
         }
 
         Types::Filmtweaks GetFilmtweaks() final

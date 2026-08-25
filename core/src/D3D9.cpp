@@ -176,6 +176,11 @@ namespace IWXMVM::D3D9
             GFX::GraphicsManager::Get().Initialize();
         }
 
+        if (Mod::GetGameInterface()->GetGameState() == Types::GameState::InDemo)
+        {
+            GFX::GraphicsManager::Get().ApplyDof();
+        }
+
         capturedAlready = false;
         if (Components::CaptureManager::Get().IsCapturing())
         {

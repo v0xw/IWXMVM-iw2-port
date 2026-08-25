@@ -3,6 +3,7 @@
 
 #include "Graphics/Resource.hpp"
 #include "Resources.hpp"
+#include "Types/Dof.hpp"
 #include "Types/Keyframe.hpp"
 #include "Components/CaptureManager.hpp"
 
@@ -44,6 +45,12 @@ namespace IWXMVM::GFX
         void Uninitialize();
         void Render();
         void DrawShaderForPassIndex(int32_t passIndex);
+
+        // CoD2 has no engine depth of field, so the visuals tab DOF is implemented
+        // as a post process on top of the intercepted depth buffer
+        void ApplyDof();
+        Types::DoF GetDofSettings() const { return dofSettings; }
+        void SetDofSettings(const Types::DoF& settings) { dofSettings = settings; }
 
         std::optional<int32_t> GetSelectedNodeId() const { return selectedNodeId; }
         bool WasObjectHoveredThisFrame() const { return objectHoveredThisFrame; }
@@ -96,6 +103,22 @@ namespace IWXMVM::GFX
         IDirect3DVertexShader9* depthPassVS = nullptr;
         IDirect3DVertexDeclaration9* depthPassVDecl = nullptr;
         IDirect3DVertexBuffer9* depthPassVertices = nullptr;
+
+        void CreateDofResources();
+        void DestroyDofResources();
+        bool EnsureDofRenderTargets(std::uint32_t width, std::uint32_t height);
+        IDirect3DPixelShader9* dofDownsamplePS = nullptr;
+        IDirect3DPixelShader9* dofBlurPS = nullptr;
+        IDirect3DPixelShader9* dofCombinePS = nullptr;
+        IDirect3DTexture9* dofColorTexture = nullptr;
+        IDirect3DSurface9* dofColorSurface = nullptr;
+        IDirect3DTexture9* dofSmallTextureA = nullptr;
+        IDirect3DSurface9* dofSmallSurfaceA = nullptr;
+        IDirect3DTexture9* dofSmallTextureB = nullptr;
+        IDirect3DSurface9* dofSmallSurfaceB = nullptr;
+        std::uint32_t dofTargetWidth = 0;
+        std::uint32_t dofTargetHeight = 0;
+        Types::DoF dofSettings = { false, 1.8f, 800.0f, 3000.0f, 6.0f, 10.0f, 100.0f, 0.5f };
 
         Mesh axis;
         Mesh camera;

@@ -4,6 +4,7 @@
 #include "UI/UIManager.hpp"
 #include "Components/CameraManager.hpp"
 #include "Components/CampathManager.hpp"
+#include "Graphics/DofSettings.hpp"
 #include "Graphics/Resource.hpp"
 #include "Input.hpp"
 #include "Mod.hpp"
@@ -14,9 +15,22 @@ INCBIN_EXTERN(VERTEX_SHADER);
 INCBIN_EXTERN(PIXEL_SHADER);
 INCBIN_EXTERN(DEPTH_VERTEX_SHADER);
 INCBIN_EXTERN(DEPTH_PIXEL_SHADER);
+INCBIN_EXTERN(DOF_DOWNSAMPLE_PIXEL_SHADER);
+INCBIN_EXTERN(DOF_BLUR_PIXEL_SHADER);
+INCBIN_EXTERN(DOF_COMBINE_PIXEL_SHADER);
 
 namespace IWXMVM::GFX
 {
+    Types::DoF GetDofSettings()
+    {
+        return GraphicsManager::Get().GetDofSettings();
+    }
+
+    void SetDofSettings(const Types::DoF& settings)
+    {
+        GraphicsManager::Get().SetDofSettings(settings);
+    }
+
     void GraphicsManager::CreateGraphicsResources()
     {
         IDirect3DDevice9* device = D3D9::GetDevice();
@@ -177,10 +191,317 @@ namespace IWXMVM::GFX
         depthPassVertices->Release();
     }
 
+    namespace
+    {
+        IDirect3DPixelShader9* CompilePixelShader(const void* source, std::size_t sourceSize, const char* name)
+        {
+            IDirect3DDevice9* device = D3D9::GetDevice();
+
+            ID3DXBuffer* errorMessageBuffer = nullptr;
+            ID3DXBuffer* pixelShaderBuffer = nullptr;
+            HRESULT hr = D3DXCompileShader((LPCSTR)source, sourceSize, nullptr, NULL, "main", "ps_3_0", NULL,
+                                           &pixelShaderBuffer, &errorMessageBuffer, nullptr);
+            if (FAILED(hr))
+            {
+                LOG_ERROR("Failed to compile {} pixel shader (hr = {:#x}): {}", name, static_cast<unsigned long>(hr),
+                          errorMessageBuffer ? reinterpret_cast<const char*>(errorMessageBuffer->GetBufferPointer())
+                                             : "(no error message; is D3DCompiler_43.dll installed?)");
+                if (errorMessageBuffer)
+                    errorMessageBuffer->Release();
+                return nullptr;
+            }
+
+            IDirect3DPixelShader9* pixelShader = nullptr;
+            hr = device->CreatePixelShader(reinterpret_cast<const DWORD*>(pixelShaderBuffer->GetBufferPointer()),
+                                           &pixelShader);
+            if (FAILED(hr))
+            {
+                LOG_ERROR("Failed to create {} pixel shader", name);
+            }
+            pixelShaderBuffer->Release();
+
+            return pixelShader;
+        }
+    }  // namespace
+
+    void GraphicsManager::CreateDofResources()
+    {
+        // The DOF post process is CoD2-only: the other games have engine depth of field,
+        // and the shaders hardcode CoD2's infinite projection depth linearization
+        if (Mod::GetGameInterface()->GetGame() != Types::Game::IW2)
+        {
+            return;
+        }
+
+        dofDownsamplePS = CompilePixelShader(DOF_DOWNSAMPLE_PIXEL_SHADER_data, DOF_DOWNSAMPLE_PIXEL_SHADER_size,
+                                             "DOF downsample");
+        dofBlurPS = CompilePixelShader(DOF_BLUR_PIXEL_SHADER_data, DOF_BLUR_PIXEL_SHADER_size, "DOF blur");
+        dofCombinePS = CompilePixelShader(DOF_COMBINE_PIXEL_SHADER_data, DOF_COMBINE_PIXEL_SHADER_size, "DOF combine");
+    }
+
+    void GraphicsManager::DestroyDofResources()
+    {
+        auto safeRelease = [](auto*& resource) {
+            if (resource != nullptr)
+            {
+                resource->Release();
+                resource = nullptr;
+            }
+        };
+
+        safeRelease(dofColorSurface);
+        safeRelease(dofColorTexture);
+        safeRelease(dofSmallSurfaceA);
+        safeRelease(dofSmallTextureA);
+        safeRelease(dofSmallSurfaceB);
+        safeRelease(dofSmallTextureB);
+        safeRelease(dofDownsamplePS);
+        safeRelease(dofBlurPS);
+        safeRelease(dofCombinePS);
+
+        dofTargetWidth = 0;
+        dofTargetHeight = 0;
+    }
+
+    bool GraphicsManager::EnsureDofRenderTargets(std::uint32_t width, std::uint32_t height)
+    {
+        if (dofTargetWidth == width && dofTargetHeight == height && dofColorTexture != nullptr)
+        {
+            return true;
+        }
+
+        IDirect3DDevice9* device = D3D9::GetDevice();
+
+        auto safeRelease = [](auto*& resource) {
+            if (resource != nullptr)
+            {
+                resource->Release();
+                resource = nullptr;
+            }
+        };
+        safeRelease(dofColorSurface);
+        safeRelease(dofColorTexture);
+        safeRelease(dofSmallSurfaceA);
+        safeRelease(dofSmallTextureA);
+        safeRelease(dofSmallSurfaceB);
+        safeRelease(dofSmallTextureB);
+        dofTargetWidth = 0;
+        dofTargetHeight = 0;
+
+        const auto smallWidth = std::max(width / 4u, 1u);
+        const auto smallHeight = std::max(height / 4u, 1u);
+
+        auto createTarget = [&](IDirect3DTexture9*& texture, IDirect3DSurface9*& surface, std::uint32_t w,
+                                std::uint32_t h, D3DFORMAT format) {
+            if (FAILED(device->CreateTexture(w, h, 1, D3DUSAGE_RENDERTARGET, format, D3DPOOL_DEFAULT, &texture,
+                                             nullptr)) ||
+                FAILED(texture->GetSurfaceLevel(0, &surface)))
+            {
+                return false;
+            }
+            return true;
+        };
+
+        if (!createTarget(dofColorTexture, dofColorSurface, width, height, D3DFMT_X8R8G8B8) ||
+            !createTarget(dofSmallTextureA, dofSmallSurfaceA, smallWidth, smallHeight, D3DFMT_A8R8G8B8) ||
+            !createTarget(dofSmallTextureB, dofSmallSurfaceB, smallWidth, smallHeight, D3DFMT_A8R8G8B8))
+        {
+            LOG_ERROR("Failed to create DOF render targets ({}x{})", width, height);
+            safeRelease(dofColorSurface);
+            safeRelease(dofColorTexture);
+            safeRelease(dofSmallSurfaceA);
+            safeRelease(dofSmallTextureA);
+            safeRelease(dofSmallSurfaceB);
+            safeRelease(dofSmallTextureB);
+            return false;
+        }
+
+        dofTargetWidth = width;
+        dofTargetHeight = height;
+        return true;
+    }
+
+    void GraphicsManager::ApplyDof()
+    {
+        // CoD2 renders the viewmodel with a compressed depth range; raw depth values below
+        // this threshold are treated as viewmodel and excluded from the effect
+        constexpr float VIEWMODEL_DEPTH_THRESHOLD = 0.3f;
+        // z scale of CoD2's InfinitePerspectiveMatrix
+        constexpr float PROJECTION_DEPTH_SCALE = 0.99950027f;
+
+        if (Mod::GetGameInterface()->GetGame() != Types::Game::IW2)
+        {
+            return;
+        }
+
+        if (!dofSettings.enabled)
+        {
+            return;
+        }
+
+        if (dofDownsamplePS == nullptr || dofBlurPS == nullptr || dofCombinePS == nullptr ||
+            depthPassVS == nullptr || depthPassVDecl == nullptr || depthPassVertices == nullptr)
+        {
+            return;
+        }
+
+        IDirect3DTexture9* depthTexture = D3D9::GetDepthTexture();
+        if (depthTexture == nullptr)
+        {
+            static bool warnedOnce = false;
+            if (!warnedOnce)
+            {
+                warnedOnce = true;
+                LOG_WARN("DOF requires the intercepted depth buffer; disable multisampling (r_multisample) and "
+                         "restart the video system");
+            }
+            return;
+        }
+
+        IDirect3DDevice9* device = D3D9::GetDevice();
+
+        IDirect3DSurface9* backBuffer = nullptr;
+        if (FAILED(device->GetRenderTarget(0, &backBuffer)) || backBuffer == nullptr)
+        {
+            return;
+        }
+
+        D3DSURFACE_DESC backBufferDesc = {};
+        backBuffer->GetDesc(&backBufferDesc);
+
+        if (!EnsureDofRenderTargets(backBufferDesc.Width, backBufferDesc.Height))
+        {
+            backBuffer->Release();
+            return;
+        }
+
+        if (FAILED(device->StretchRect(backBuffer, NULL, dofColorSurface, NULL, D3DTEXF_NONE)))
+        {
+            backBuffer->Release();
+            return;
+        }
+
+        IDirect3DStateBlock9* d3d9_state_block = nullptr;
+        if (FAILED(device->CreateStateBlock(D3DSBT_ALL, &d3d9_state_block)))
+        {
+            backBuffer->Release();
+            return;
+        }
+
+        device->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
+        device->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+        device->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+        device->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+        device->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
+        device->SetRenderState(D3DRS_FOGENABLE, FALSE);
+        device->SetRenderState(D3DRS_STENCILENABLE, FALSE);
+        device->SetRenderState(D3DRS_CLIPPING, FALSE);
+        device->SetRenderState(D3DRS_LIGHTING, FALSE);
+        device->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+        device->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
+        device->SetRenderState(D3DRS_COLORWRITEENABLE, 0xF);
+
+        for (DWORD sampler = 0; sampler < 3; sampler++)
+        {
+            device->SetSamplerState(sampler, D3DSAMP_MIPFILTER, D3DTEXF_NONE);
+            device->SetSamplerState(sampler, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+            device->SetSamplerState(sampler, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+        }
+
+        device->SetVertexDeclaration(depthPassVDecl);
+        device->SetVertexShader(depthPassVS);
+        device->SetStreamSource(0, depthPassVertices, 0, sizeof(Types::FSVertex));
+
+        float znear = 4.0f;
+        const auto znearDvar = Mod::GetGameInterface()->GetDvar("r_znear");
+        if (znearDvar.has_value())
+        {
+            znear = znearDvar.value().value->floating_point;
+        }
+
+        const float smallWidth = static_cast<float>(std::max(dofTargetWidth / 4u, 1u));
+        const float smallHeight = static_cast<float>(std::max(dofTargetHeight / 4u, 1u));
+
+        auto setTexelOffset = [&](float width, float height) {
+            const float texelOffset[4] = { -1.0f / width, 1.0f / height, 0.0f, 0.0f };
+            device->SetVertexShaderConstantF(0, texelOffset, 1);
+        };
+
+        auto drawQuad = [&]() { device->DrawPrimitive(D3DPT_TRIANGLELIST, 0, 2); };
+
+        auto setSamplerFilter = [&](DWORD sampler, D3DTEXTUREFILTERTYPE filter) {
+            device->SetSamplerState(sampler, D3DSAMP_MINFILTER, filter);
+            device->SetSamplerState(sampler, D3DSAMP_MAGFILTER, filter);
+        };
+
+        // Downsample to quarter resolution; the near CoC goes into the alpha channel
+        device->SetRenderTarget(0, dofSmallSurfaceA);
+        setTexelOffset(smallWidth, smallHeight);
+        device->SetPixelShader(dofDownsamplePS);
+        device->SetTexture(0, dofColorTexture);
+        setSamplerFilter(0, D3DTEXF_LINEAR);
+        device->SetTexture(1, depthTexture);
+        setSamplerFilter(1, D3DTEXF_POINT);
+        const float downsampleParams[4] = { znear, PROJECTION_DEPTH_SCALE, dofSettings.nearStart,
+                                            dofSettings.nearEnd };
+        device->SetPixelShaderConstantF(0, downsampleParams, 1);
+        const float downsampleParams2[4] = { VIEWMODEL_DEPTH_THRESHOLD, 0.0f, 0.0f, 0.0f };
+        device->SetPixelShaderConstantF(1, downsampleParams2, 1);
+        drawQuad();
+
+        // Separable gaussian blur on the quarter resolution buffer
+        device->SetPixelShader(dofBlurPS);
+        device->SetTexture(1, nullptr);
+
+        device->SetRenderTarget(0, dofSmallSurfaceB);
+        device->SetTexture(0, dofSmallTextureA);
+        setSamplerFilter(0, D3DTEXF_LINEAR);
+        const float horizontalStep[4] = { 1.0f / smallWidth, 0.0f, 0.0f, 0.0f };
+        device->SetPixelShaderConstantF(0, horizontalStep, 1);
+        drawQuad();
+
+        device->SetRenderTarget(0, dofSmallSurfaceA);
+        device->SetTexture(0, dofSmallTextureB);
+        const float verticalStep[4] = { 0.0f, 1.0f / smallHeight, 0.0f, 0.0f };
+        device->SetPixelShaderConstantF(0, verticalStep, 1);
+        drawQuad();
+
+        // Combine back into the backbuffer
+        device->SetRenderTarget(0, backBuffer);
+        setTexelOffset(static_cast<float>(dofTargetWidth), static_cast<float>(dofTargetHeight));
+        device->SetPixelShader(dofCombinePS);
+        device->SetTexture(0, dofColorTexture);
+        setSamplerFilter(0, D3DTEXF_POINT);
+        device->SetTexture(1, dofSmallTextureA);
+        setSamplerFilter(1, D3DTEXF_LINEAR);
+        device->SetTexture(2, depthTexture);
+        setSamplerFilter(2, D3DTEXF_POINT);
+        const float combineParams[4] = { znear, PROJECTION_DEPTH_SCALE, VIEWMODEL_DEPTH_THRESHOLD,
+                                         dofSettings.bias };
+        device->SetPixelShaderConstantF(0, combineParams, 1);
+        const float combineRanges[4] = { dofSettings.nearStart, dofSettings.nearEnd, dofSettings.farStart,
+                                         dofSettings.farEnd };
+        device->SetPixelShaderConstantF(1, combineRanges, 1);
+        const float combineStrength[4] = { std::clamp(dofSettings.nearBlur / 10.0f, 0.0f, 1.0f),
+                                           std::clamp(dofSettings.farBlur / 10.0f, 0.0f, 1.0f),
+                                           1.0f / static_cast<float>(dofTargetWidth),
+                                           1.0f / static_cast<float>(dofTargetHeight) };
+        device->SetPixelShaderConstantF(2, combineStrength, 1);
+        drawQuad();
+
+        device->SetTexture(1, nullptr);
+        device->SetTexture(2, nullptr);
+
+        d3d9_state_block->Apply();
+        d3d9_state_block->Release();
+        backBuffer->Release();
+    }
+
     void GraphicsManager::Initialize()
     {
         CreateGraphicsResources();
         CreateDepthPassResources();
+        CreateDofResources();
 
         BufferManager::Get().Initialize();
 
@@ -212,6 +533,7 @@ namespace IWXMVM::GFX
     void GraphicsManager::Uninitialize()
     {
         BufferManager::Get().Uninitialize();
+        DestroyDofResources();
         DestroyDepthPassResources();
         DestroyGraphicsResources();
     }

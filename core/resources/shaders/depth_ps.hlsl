@@ -9,10 +9,13 @@ sampler2D depthTex : register(s10);
 float depthBlend : register(c0);
 float normalBlend : register(c4);
 float onlyDrawViewmodel : register(c8);
+// the depth surface can be larger than the backbuffer (CoD2 sizes it to the desktop in windowed
+// mode) - the scene then only occupies its top-left corner; (1, 1) when the sizes match
+float2 depthUvScale : register(c12);
 
 float GetLinearizedDepth(float2 texcoord)
 {
-    float depth = tex2Dlod(depthTex, float4(texcoord, 0, 0)).x;
+    float depth = tex2Dlod(depthTex, float4(texcoord * depthUvScale, 0, 0)).x;
     const float N = 1.0f;
     const float farPlane = 1000.0f;
     depth /= farPlane - depth * (farPlane - N);

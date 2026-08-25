@@ -1147,6 +1147,16 @@ namespace IWXMVM::GFX
         device->SetVertexDeclaration(depthPassVDecl);
         device->SetVertexShaderConstantF(0, reinterpret_cast<const float*>(&texelOffset), 1);
         device->SetVertexShader(depthPassVS);
+
+        // the depth surface can be larger than the backbuffer (CoD2 sizes it to the desktop in
+        // windowed mode); scale the sampling to the region the scene actually occupies
+        D3DSURFACE_DESC depthDesc = {};
+        depthTexture->GetLevelDesc(0, &depthDesc);
+        const float depthUvScale[4] = {
+            depthDesc.Width > 0 ? gameSize.x / static_cast<float>(depthDesc.Width) : 1.0f,
+            depthDesc.Height > 0 ? gameSize.y / static_cast<float>(depthDesc.Height) : 1.0f, 0.0f, 0.0f
+        };
+        device->SetPixelShaderConstantF(12, depthUvScale, 1);
         device->SetPixelShaderConstantF(
             0, 
             std::array<float, 4>{

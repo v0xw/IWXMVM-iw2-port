@@ -581,8 +581,19 @@ namespace IWXMVM::IW2
 
             // While rewinding, the demo replays without the render path running, so entity states
             // advance while the DObj animation state goes stale; evaluating bones on that mismatch
-            // crashes in the player controller code (e.g. when scrubbing across a round start)
+            // faults in the player animation code (e.g. when scrubbing across a round start)
             if (Components::Rewinding::IsRewinding())
+            {
+                return Types::BoneData{.id = -1};
+            }
+
+            // A timeline jump bumps cls.realtime far ahead and the game then chews through the
+            // backlog over several frames with the rewinding flag already cleared; entity and
+            // DObj state are just as inconsistent during that catch-up, so skip it too
+            const auto realtime = *reinterpret_cast<const int32_t*>(Addresses::cls_realtime);
+            const auto serverTime = *reinterpret_cast<const int32_t*>(Addresses::cl_serverTime);
+            constexpr int32_t MAX_UNCONSUMED_DEMO_TIME = 2000;  // ms
+            if (realtime - serverTime > MAX_UNCONSUMED_DEMO_TIME)
             {
                 return Types::BoneData{.id = -1};
             }

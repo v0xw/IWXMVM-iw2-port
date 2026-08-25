@@ -51,7 +51,17 @@ namespace IWXMVM::IW2::Hooks::Camera
 
             if (firstPersonFOV > 0.0f && camera->GetMode() == Components::Camera::Mode::FirstPerson)
             {
-                ApplyFov(refdef, firstPersonFOV);
+                // Only override while the game is showing the plain cg_fov view. When (partially)
+                // zoomed into a scope or a scripted zoom, CG_CalcFov computes a different fov;
+                // overriding that would remove the zoom, leaving just the scope overlay over an
+                // unzoomed image.
+                const auto cg_fov = Functions::FindDvar("cg_fov");
+                const bool gameModifiedFov = cg_fov && cg_fov->type == Structures::DVAR_TYPE_FLOAT &&
+                                             std::abs(refdef.fov_x - cg_fov->value.decimal) > 0.1f;
+                if (!gameModifiedFov)
+                {
+                    ApplyFov(refdef, firstPersonFOV);
+                }
             }
 
             camera->GetFov() = refdef.fov_x;

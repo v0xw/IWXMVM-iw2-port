@@ -62,7 +62,17 @@ namespace IWXMVM::D3D9
 
         HRESULT hr = D3D_OK;
 
-        if (MultiSample == D3DMULTISAMPLE_NONE && Width == gameWidth && Height == gameHeight)
+        LOG_DEBUG("CreateDepthStencilSurface called: {}x{}, format {}, multisample {} (expected game resolution {}x{})",
+                  Width, Height, static_cast<int>(Format), static_cast<int>(MultiSample), gameWidth, gameHeight);
+
+        // CoD2 only creates two kinds of depth stencil surfaces: the fullscreen one and 128x128
+        // shadow cookies, so any large enough surface is the one we want; gameWidth/gameHeight
+        // can be stale or unset depending on how the game (re)created its device
+        const bool isMainDepthStencil =
+            (Width == gameWidth && Height == gameHeight) ||
+            (Mod::GetGameInterface()->GetGame() == Types::Game::IW2 && Width >= 512 && Height >= 384);
+
+        if (MultiSample == D3DMULTISAMPLE_NONE && isMainDepthStencil)
         {
             LOG_DEBUG("Intercepting depth stencil surface creation");
 
@@ -71,11 +81,12 @@ namespace IWXMVM::D3D9
 				depthTexture->Release();
 				depthTexture = nullptr;
 			}
-			hr = device->CreateTexture(Width, Height, 1, D3DUSAGE_DEPTHSTENCIL, static_cast<D3DFORMAT>(MAKEFOURCC('I', 'N', 'T', 'Z')), D3DPOOL_DEFAULT,
+			hr = pDevice->CreateTexture(Width, Height, 1, D3DUSAGE_DEPTHSTENCIL, static_cast<D3DFORMAT>(MAKEFOURCC('I', 'N', 'T', 'Z')), D3DPOOL_DEFAULT,
 				&depthTexture, nullptr);
-			if (FAILED(hr))
+			if (FAILED(hr) || !depthTexture)
 			{
 				LOG_ERROR("Failed to create depth texture");
+                return CreateDepthStencilSurface(pDevice, Width, Height, Format, MultiSample, MultisampleQuality, Discard, ppSurface, pSharedHandle);
 			}
 
             hr = depthTexture->GetSurfaceLevel(0, ppSurface);
@@ -247,6 +258,12 @@ namespace IWXMVM::D3D9
 
     HRESULT __stdcall Reset_Hook(IDirect3DDevice9* pDevice, D3DPRESENT_PARAMETERS* pPresentationParameters)
     {
+        if (pPresentationParameters->BackBufferWidth != 0 && pPresentationParameters->BackBufferHeight != 0)
+        {
+            gameWidth = pPresentationParameters->BackBufferWidth;
+            gameHeight = pPresentationParameters->BackBufferHeight;
+        }
+
 		if (depthTexture)
 		{
 			depthTexture->Release();

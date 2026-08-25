@@ -352,8 +352,8 @@ namespace IWXMVM::GFX
             if (!warnedOnce)
             {
                 warnedOnce = true;
-                LOG_WARN("DOF requires the intercepted depth buffer; disable multisampling (r_multisample) and "
-                         "restart the video system");
+                LOG_WARN("DOF requires access to the depth buffer, which is not available; if anti-aliasing is "
+                         "enabled (r_aaSamples > 1), disable it and do a vid_restart");
             }
             return;
         }

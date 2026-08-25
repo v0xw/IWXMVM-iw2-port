@@ -149,6 +149,7 @@ namespace IWXMVM::IW2::Addresses
     constexpr uintptr_t cls_cgameStarted = 0x0068A518;
     constexpr uintptr_t cls_frametime = 0x0068A51C;
     constexpr uintptr_t cls_realtime = 0x0068A520;
+    constexpr uintptr_t level_bgs = 0x019A1C78;  // bgs_t*; the client background game state (animation tables etc.), null around cgame restarts
 
     // --- globals: cgame ------------------------------------------------------------------------------------------
     constexpr uintptr_t cgs_viewport = 0x014E5704;  // int x, y, width, height

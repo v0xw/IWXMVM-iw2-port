@@ -579,6 +579,16 @@ namespace IWXMVM::IW2
                 return Types::BoneData{.id = -1};
             }
 
+            // The player bone controller code indexes the animation tables through level_bgs
+            // without checking it, and the game nulls it around cgame restarts (in-demo round
+            // transitions, demo end/reload). Forcing a skeleton evaluation in that window reads
+            // through the null pointer and crashes - this was the cause of both the swallowed
+            // "interface rendering" errors and the hard crashes with the bone camera active.
+            if (*reinterpret_cast<void**>(Addresses::level_bgs) == nullptr)
+            {
+                return Types::BoneData{.id = -1};
+            }
+
             // While rewinding, the demo replays without the render path running, so entity states
             // advance while the DObj animation state goes stale; evaluating bones on that mismatch
             // faults in the player animation code (e.g. when scrubbing across a round start)

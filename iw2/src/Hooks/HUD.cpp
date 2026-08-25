@@ -2,7 +2,9 @@
 #include "HUD.hpp"
 
 #include "Components/CameraManager.hpp"
+#include "Components/Rendering.hpp"
 #include "Graphics/PostProcessSettings.hpp"
+#include "Types/RenderingFlags.hpp"
 #include "Utilities/HookManager.hpp"
 #include "../Addresses.hpp"
 #include "../Functions.hpp"
@@ -342,6 +344,43 @@ namespace IWXMVM::IW2::Hooks::HUD
             return true;
         }
     }  // namespace
+
+    // ---------------------------------------------------------------------------------------------------------
+    // Multipass greenscreen passes. Core drives Types::RenderingFlags (OnlyWorld / OnlyPlayers /
+    // WorldAndPlayers); on CoD2 they are applied through the renderer's debug dvars, which the scene building
+    // consults. The normal render path never clears the color buffer (the sky covers it), so when the world is
+    // hidden a green clear is enqueued ahead of the scene commands. Runs before R_RenderScene each frame.
+    // ---------------------------------------------------------------------------------------------------------
+
+    void ApplyRenderingFlags()
+    {
+        static bool needRestore = false;
+
+        const auto flags =
+            Structures::IsDemoPlaying() ? Components::Rendering::GetRenderingFlags() : Types::RenderingFlags_DrawEverything;
+        const bool drawWorld = (flags & Types::RenderingFlags_DrawWorld) != 0;
+        const bool drawPlayers = (flags & Types::RenderingFlags_DrawPlayers) != 0;
+
+        if (drawWorld && drawPlayers && !needRestore)
+            return;
+        needRestore = !(drawWorld && drawPlayers);
+
+        for (const auto name : {"r_drawWorld", "r_drawSModels", "r_drawBModels", "r_drawDecals", "r_drawWater",
+                                "r_drawSun"})
+            SetBoolDvar(name, drawWorld);
+        SetBoolDvar("r_drawEntities", drawPlayers);
+
+        if (!drawWorld)
+        {
+            typedef char(__cdecl* R_AddCmdClearScreen_t)(int clearFlags, const float* rgba, float depth,
+                                                         char stencil);
+            if (const auto addClear = Addresses::Gfx(Addresses::GfxRVA::R_AddCmdClearScreen))
+            {
+                constexpr float green[4] = {0.0f, 1.0f, 0.0f, 1.0f};
+                reinterpret_cast<R_AddCmdClearScreen_t>(addClear)(1, green, 1.0f, 0);
+            }
+        }
+    }
 
     void __cdecl CG_Draw2D_Hook()
     {

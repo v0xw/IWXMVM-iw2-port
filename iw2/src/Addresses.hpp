@@ -243,6 +243,7 @@ namespace IWXMVM::IW2::Addresses
         constexpr uint32_t R_SetSunLightOverride = 0x00001430;
         constexpr uint32_t R_ResetSunLightOverride = 0x00001460;
         constexpr uint32_t R_AddCmdSetViewport = 0x00021FF0;    // void __cdecl(int x, int y, int w, int h); command id 13, 20 bytes
+        constexpr uint32_t R_AddCmdClearScreen = 0x00022610;    // char __cdecl(int clearFlags, const float* rgba, float depth, char stencil); flags: 1 color, 2 depth, 4 stencil
         constexpr uint32_t RB_RenderCommandTable = 0x00190518;  // void(__cdecl*)(uint8_t** cmd)[40]; backend dispatch table, indexed by command id
     }  // namespace GfxRVA
 

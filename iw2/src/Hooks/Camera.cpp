@@ -7,6 +7,7 @@
 #include "../Addresses.hpp"
 #include "../Structures.hpp"
 #include "../Functions.hpp"
+#include "HUD.hpp"
 
 namespace IWXMVM::IW2::Hooks::Camera
 {
@@ -37,6 +38,10 @@ namespace IWXMVM::IW2::Hooks::Camera
 
     void __cdecl CG_CalcViewValues_Hook()
     {
+        // runs before CG_DrawActive calls R_RenderScene, so the r_draw* dvars (and the green
+        // clear command, if a greenscreen pass hides the world) are in place for this frame
+        HUD::ApplyRenderingFlags();
+
         CG_CalcViewValues_Trampoline();
 
         auto& refdef = GetRefdef();

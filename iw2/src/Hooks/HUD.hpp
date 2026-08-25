@@ -32,6 +32,10 @@ namespace IWXMVM::IW2::Hooks::HUD
     // mod-controlled cameras (free, dolly, bone, orbit) it is suppressed regardless of the toggles.
     bool PlayerFeedbackVisible();
 
+    // applies core's Types::RenderingFlags (multipass greenscreen passes) through the renderer's
+    // debug dvars; called every frame before R_RenderScene enqueues the scene
+    void ApplyRenderingFlags();
+
     // zeroes the snapshot shellshock state while showShellshock is off; called every frame
     void SuppressShellshock();
 

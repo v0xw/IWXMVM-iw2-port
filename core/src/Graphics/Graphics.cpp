@@ -4,7 +4,7 @@
 #include "UI/UIManager.hpp"
 #include "Components/CameraManager.hpp"
 #include "Components/CampathManager.hpp"
-#include "Graphics/DofSettings.hpp"
+#include "Graphics/PostProcessSettings.hpp"
 #include "Graphics/Resource.hpp"
 #include "Input.hpp"
 #include "Mod.hpp"
@@ -18,6 +18,7 @@ INCBIN_EXTERN(DEPTH_PIXEL_SHADER);
 INCBIN_EXTERN(DOF_DOWNSAMPLE_PIXEL_SHADER);
 INCBIN_EXTERN(DOF_BLUR_PIXEL_SHADER);
 INCBIN_EXTERN(DOF_COMBINE_PIXEL_SHADER);
+INCBIN_EXTERN(FILMTWEAKS_PIXEL_SHADER);
 
 namespace IWXMVM::GFX
 {
@@ -29,6 +30,16 @@ namespace IWXMVM::GFX
     void SetDofSettings(const Types::DoF& settings)
     {
         GraphicsManager::Get().SetDofSettings(settings);
+    }
+
+    Types::Filmtweaks GetFilmtweaksSettings()
+    {
+        return GraphicsManager::Get().GetFilmtweaksSettings();
+    }
+
+    void SetFilmtweaksSettings(const Types::Filmtweaks& settings)
+    {
+        GraphicsManager::Get().SetFilmtweaksSettings(settings);
     }
 
     void GraphicsManager::CreateGraphicsResources()
@@ -224,10 +235,10 @@ namespace IWXMVM::GFX
         }
     }  // namespace
 
-    void GraphicsManager::CreateDofResources()
+    void GraphicsManager::CreatePostProcessResources()
     {
-        // The DOF post process is CoD2-only: the other games have engine depth of field,
-        // and the shaders hardcode CoD2's infinite projection depth linearization
+        // The DOF and filmtweaks post processes are CoD2-only: the other games have engine
+        // versions, and the DOF shaders hardcode CoD2's infinite projection depth linearization
         if (Mod::GetGameInterface()->GetGame() != Types::Game::IW2)
         {
             return;
@@ -237,9 +248,10 @@ namespace IWXMVM::GFX
                                              "DOF downsample");
         dofBlurPS = CompilePixelShader(DOF_BLUR_PIXEL_SHADER_data, DOF_BLUR_PIXEL_SHADER_size, "DOF blur");
         dofCombinePS = CompilePixelShader(DOF_COMBINE_PIXEL_SHADER_data, DOF_COMBINE_PIXEL_SHADER_size, "DOF combine");
+        filmtweaksPS = CompilePixelShader(FILMTWEAKS_PIXEL_SHADER_data, FILMTWEAKS_PIXEL_SHADER_size, "filmtweaks");
     }
 
-    void GraphicsManager::DestroyDofResources()
+    void GraphicsManager::DestroyPostProcessResources()
     {
         auto safeRelease = [](auto*& resource) {
             if (resource != nullptr)
@@ -258,6 +270,7 @@ namespace IWXMVM::GFX
         safeRelease(dofDownsamplePS);
         safeRelease(dofBlurPS);
         safeRelease(dofCombinePS);
+        safeRelease(filmtweaksPS);
 
         dofTargetWidth = 0;
         dofTargetHeight = 0;
@@ -508,11 +521,106 @@ namespace IWXMVM::GFX
         backBuffer->Release();
     }
 
+    void GraphicsManager::ApplyFilmtweaks()
+    {
+        if (Mod::GetGameInterface()->GetGame() != Types::Game::IW2)
+        {
+            return;
+        }
+
+        if (!filmtweaksSettings.enabled)
+        {
+            return;
+        }
+
+        if (filmtweaksPS == nullptr || depthPassVS == nullptr || depthPassVDecl == nullptr ||
+            depthPassVertices == nullptr)
+        {
+            return;
+        }
+
+        IDirect3DDevice9* device = D3D9::GetDevice();
+
+        IDirect3DSurface9* backBuffer = nullptr;
+        if (FAILED(device->GetRenderTarget(0, &backBuffer)) || backBuffer == nullptr)
+        {
+            return;
+        }
+
+        D3DSURFACE_DESC backBufferDesc = {};
+        backBuffer->GetDesc(&backBufferDesc);
+
+        if (!EnsureDofRenderTargets(backBufferDesc.Width, backBufferDesc.Height))
+        {
+            backBuffer->Release();
+            return;
+        }
+
+        if (FAILED(device->StretchRect(backBuffer, NULL, dofColorSurface, NULL, D3DTEXF_NONE)))
+        {
+            backBuffer->Release();
+            return;
+        }
+
+        IDirect3DStateBlock9* d3d9_state_block = nullptr;
+        if (FAILED(device->CreateStateBlock(D3DSBT_ALL, &d3d9_state_block)))
+        {
+            backBuffer->Release();
+            return;
+        }
+
+        device->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
+        device->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+        device->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+        device->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+        device->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
+        device->SetRenderState(D3DRS_FOGENABLE, FALSE);
+        device->SetRenderState(D3DRS_STENCILENABLE, FALSE);
+        device->SetRenderState(D3DRS_CLIPPING, FALSE);
+        device->SetRenderState(D3DRS_LIGHTING, FALSE);
+        device->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+        device->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
+        device->SetRenderState(D3DRS_COLORWRITEENABLE, 0xF);
+
+        device->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_NONE);
+        device->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
+        device->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
+        device->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+        device->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+
+        device->SetVertexDeclaration(depthPassVDecl);
+        device->SetVertexShader(depthPassVS);
+        device->SetStreamSource(0, depthPassVertices, 0, sizeof(Types::FSVertex));
+
+        const float texelOffset[4] = { -1.0f / static_cast<float>(backBufferDesc.Width),
+                                       1.0f / static_cast<float>(backBufferDesc.Height), 0.0f, 0.0f };
+        device->SetVertexShaderConstantF(0, texelOffset, 1);
+
+        device->SetPixelShader(filmtweaksPS);
+        device->SetTexture(0, dofColorTexture);
+
+        const auto& film = filmtweaksSettings;
+        const float filmParams[4] = { film.brightness + 0.5f - 0.5f * film.contrast, film.contrast,
+                                      film.desaturation, film.invert ? 1.0f : 0.0f };
+        device->SetPixelShaderConstantF(0, filmParams, 1);
+        const float darkTint[4] = { film.tintDark.x, film.tintDark.y, film.tintDark.z, 0.0f };
+        device->SetPixelShaderConstantF(1, darkTint, 1);
+        const float tintDelta[4] = { film.tintLight.x - film.tintDark.x, film.tintLight.y - film.tintDark.y,
+                                     film.tintLight.z - film.tintDark.z, 0.0f };
+        device->SetPixelShaderConstantF(2, tintDelta, 1);
+
+        device->DrawPrimitive(D3DPT_TRIANGLELIST, 0, 2);
+
+        d3d9_state_block->Apply();
+        d3d9_state_block->Release();
+        backBuffer->Release();
+    }
+
     void GraphicsManager::Initialize()
     {
         CreateGraphicsResources();
         CreateDepthPassResources();
-        CreateDofResources();
+        CreatePostProcessResources();
 
         BufferManager::Get().Initialize();
 
@@ -544,7 +652,7 @@ namespace IWXMVM::GFX
     void GraphicsManager::Uninitialize()
     {
         BufferManager::Get().Uninitialize();
-        DestroyDofResources();
+        DestroyPostProcessResources();
         DestroyDepthPassResources();
         DestroyGraphicsResources();
     }

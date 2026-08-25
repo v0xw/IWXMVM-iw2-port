@@ -323,6 +323,7 @@ namespace IWXMVM::D3D9
         if (Mod::GetGameInterface()->GetGameState() == Types::GameState::InDemo)
         {
             GFX::GraphicsManager::Get().ApplyDof();
+            GFX::GraphicsManager::Get().ApplyFilmtweaks();
         }
 
         capturedAlready = false;

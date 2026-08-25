@@ -4,6 +4,7 @@
 #include "Graphics/Resource.hpp"
 #include "Resources.hpp"
 #include "Types/Dof.hpp"
+#include "Types/Filmtweaks.hpp"
 #include "Types/Keyframe.hpp"
 #include "Components/CaptureManager.hpp"
 
@@ -46,11 +47,15 @@ namespace IWXMVM::GFX
         void Render();
         void DrawShaderForPassIndex(int32_t passIndex);
 
-        // CoD2 has no engine depth of field, so the visuals tab DOF is implemented
-        // as a post process on top of the intercepted depth buffer
+        // CoD2 has no engine depth of field or filmtweaks, so the visuals tab versions
+        // are implemented as post processes (DOF needs the intercepted depth buffer)
         void ApplyDof();
         Types::DoF GetDofSettings() const { return dofSettings; }
         void SetDofSettings(const Types::DoF& settings) { dofSettings = settings; }
+
+        void ApplyFilmtweaks();
+        Types::Filmtweaks GetFilmtweaksSettings() const { return filmtweaksSettings; }
+        void SetFilmtweaksSettings(const Types::Filmtweaks& settings) { filmtweaksSettings = settings; }
 
         std::optional<int32_t> GetSelectedNodeId() const { return selectedNodeId; }
         bool WasObjectHoveredThisFrame() const { return objectHoveredThisFrame; }
@@ -104,8 +109,8 @@ namespace IWXMVM::GFX
         IDirect3DVertexDeclaration9* depthPassVDecl = nullptr;
         IDirect3DVertexBuffer9* depthPassVertices = nullptr;
 
-        void CreateDofResources();
-        void DestroyDofResources();
+        void CreatePostProcessResources();
+        void DestroyPostProcessResources();
         bool EnsureDofRenderTargets(std::uint32_t width, std::uint32_t height);
         IDirect3DPixelShader9* dofDownsamplePS = nullptr;
         IDirect3DPixelShader9* dofBlurPS = nullptr;
@@ -119,6 +124,16 @@ namespace IWXMVM::GFX
         std::uint32_t dofTargetWidth = 0;
         std::uint32_t dofTargetHeight = 0;
         Types::DoF dofSettings = { false, 1.8f, 800.0f, 3000.0f, 6.0f, 10.0f, 100.0f, 0.5f };
+
+        IDirect3DPixelShader9* filmtweaksPS = nullptr;
+        // defaults mirror CoD4's r_filmTweak* dvar defaults
+        Types::Filmtweaks filmtweaksSettings = { false,
+                                                 0.0f,
+                                                 1.4f,
+                                                 0.2f,
+                                                 glm::vec3(1.1f, 1.05f, 0.9f),
+                                                 glm::vec3(0.7f, 0.85f, 1.0f),
+                                                 false };
 
         Mesh axis;
         Mesh camera;

@@ -16,7 +16,7 @@
 #include "Events.hpp"
 #include "Components/CameraManager.hpp"
 #include "Components/Rewinding.hpp"
-#include "Graphics/DofSettings.hpp"
+#include "Graphics/PostProcessSettings.hpp"
 
 #include "glm/vec3.hpp"
 #include "glm/gtc/type_ptr.hpp"
@@ -375,18 +375,13 @@ namespace IWXMVM::IW2
 
         Types::Filmtweaks GetFilmtweaks() final
         {
-            // CoD2 has no film tweaks
-            Types::Filmtweaks filmtweaks{};
-            filmtweaks.brightness = 0.0f;
-            filmtweaks.contrast = 1.0f;
-            filmtweaks.desaturation = 0.0f;
-            filmtweaks.tintLight = glm::vec3(1.0f);
-            filmtweaks.tintDark = glm::vec3(0.0f);
-            return filmtweaks;
+            // CoD2 has no engine filmtweaks; ours is a post process (see GraphicsManager::ApplyFilmtweaks)
+            return GFX::GetFilmtweaksSettings();
         }
 
-        void SetFilmtweaks(Types::Filmtweaks) final
+        void SetFilmtweaks(Types::Filmtweaks filmtweaks) final
         {
+            GFX::SetFilmtweaksSettings(filmtweaks);
         }
 
         bool GetDvarBool(const char* name, bool fallback = true)

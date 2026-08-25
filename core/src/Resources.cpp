@@ -22,4 +22,5 @@ namespace IWXMVM::Resources
     INCBIN(DOF_DOWNSAMPLE_PIXEL_SHADER, "resources/shaders/dof_downsample_ps.hlsl");
     INCBIN(DOF_BLUR_PIXEL_SHADER, "resources/shaders/dof_blur_ps.hlsl");
     INCBIN(DOF_COMBINE_PIXEL_SHADER, "resources/shaders/dof_combine_ps.hlsl");
+    INCBIN(FILMTWEAKS_PIXEL_SHADER, "resources/shaders/filmtweaks_ps.hlsl");
 };  // namespace IWXMVM::Resources

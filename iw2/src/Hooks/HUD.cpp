@@ -1,6 +1,7 @@
 #include "StdInclude.hpp"
 #include "HUD.hpp"
 
+#include "Components/CameraManager.hpp"
 #include "Utilities/HookManager.hpp"
 #include "../Addresses.hpp"
 #include "../Functions.hpp"
@@ -319,6 +320,30 @@ namespace IWXMVM::IW2::Hooks::HUD
     }
 
     // ---------------------------------------------------------------------------------------------------------
+    // Sniper scope overlay. The scope belongs to the POV player's first person view; in any other camera mode
+    // (free, dolly, bone, orbit) it is just an overlay popping up whenever the POV player zooms. Suppressing it
+    // here covers both draw paths: the game's own CG_Draw2D call and our forced call when cg_draw2D is off.
+    // When idle, the original returns 1.0 (the crosshair fade factor), so the suppression does the same.
+    // ---------------------------------------------------------------------------------------------------------
+
+    typedef double(__cdecl* CG_DrawWeapReticle_t)();
+    CG_DrawWeapReticle_t CG_DrawWeapReticle_Trampoline = nullptr;
+
+    static double __cdecl CG_DrawWeapReticle_Hook()
+    {
+        if (Structures::IsDemoPlaying())
+        {
+            const auto& camera = Components::CameraManager::Get().GetActiveCamera();
+            if (camera && camera->GetMode() != Components::Camera::Mode::FirstPerson)
+            {
+                return 1.0;
+            }
+        }
+
+        return CG_DrawWeapReticle_Trampoline();
+    }
+
+    // ---------------------------------------------------------------------------------------------------------
     // "Connection Interrupted". A paused demo starves the client of snapshots, which constantly triggers the
     // interrupted-connection text and icon, so they are suppressed entirely during demo playback.
     // ---------------------------------------------------------------------------------------------------------
@@ -367,5 +392,8 @@ namespace IWXMVM::IW2::Hooks::HUD
 
         HookManager::CreateHook(Addresses::CG_DrawDisconnect, reinterpret_cast<uintptr_t>(CG_DrawDisconnect_Hook),
                                 reinterpret_cast<uintptr_t*>(&CG_DrawDisconnect_Trampoline));
+
+        HookManager::CreateHook(Addresses::CG_DrawWeapReticle, reinterpret_cast<uintptr_t>(CG_DrawWeapReticle_Hook),
+                                reinterpret_cast<uintptr_t*>(&CG_DrawWeapReticle_Trampoline));
     }
 }  // namespace IWXMVM::IW2::Hooks::HUD

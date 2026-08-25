@@ -163,10 +163,55 @@ namespace IWXMVM::IW2::Hooks::Kills
         Save();
     }
 
+    // The engine sanitizes player names only once, so nested color codes ("^^11name") survive as a
+    // live "^N" that recolors the killfeed line (the "double carrot" trick; it also shows as literal
+    // carrot junk on the scoreboard). Repeatedly strip color codes until none are left, so the
+    // killfeed line is colored purely by the team color.
+    static void FullySanitizeName(char* name)
+    {
+        bool changed = true;
+        while (changed)
+        {
+            changed = false;
+            const char* read = name;
+            char* write = name;
+            while (*read)
+            {
+                if (read[0] == '^' && read[1] >= '0' && read[1] <= '9')
+                {
+                    read += 2;
+                    changed = true;
+                    continue;
+                }
+                *write++ = *read++;
+            }
+            *write = 0;
+        }
+    }
+
+    // sanitizes the clientinfo names the obituary is about to copy; the name is rewritten from the
+    // configstring on every client info update, so this needs to run per obituary
+    static void SanitizeObituaryNames(const entityState_t* es)
+    {
+        for (const auto clientNum : {es->otherEntityNum, es->attackerEntityNum})
+        {
+            if (clientNum < 0 || clientNum >= static_cast<int>(Addresses::clientInfo_count))
+                continue;
+
+            const auto info = reinterpret_cast<char*>(Addresses::clientInfo + clientNum * Addresses::clientInfo_size);
+            if (*reinterpret_cast<int*>(info) == 0)  // infoValid
+                continue;
+
+            FullySanitizeName(info + 12);
+        }
+    }
+
     void OnObituary(const entityState_t* es)
     {
         if (!es || !IsDemoPlaying())
             return;
+
+        SanitizeObituaryNames(es);
 
         AddKill(*At<int32_t>(Addresses::cl_serverTime), es->attackerEntityNum, es->otherEntityNum);
 

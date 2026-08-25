@@ -318,6 +318,22 @@ namespace IWXMVM::IW2::Hooks::HUD
         return showKillfeedModMessages ? 1 : 0;
     }
 
+    // ---------------------------------------------------------------------------------------------------------
+    // "Connection Interrupted". A paused demo starves the client of snapshots, which constantly triggers the
+    // interrupted-connection text and icon, so they are suppressed entirely during demo playback.
+    // ---------------------------------------------------------------------------------------------------------
+
+    typedef int(__cdecl* CG_DrawDisconnect_t)();
+    CG_DrawDisconnect_t CG_DrawDisconnect_Trampoline = nullptr;
+
+    static int __cdecl CG_DrawDisconnect_Hook()
+    {
+        if (Structures::IsDemoPlaying())
+            return 0;
+
+        return CG_DrawDisconnect_Trampoline();
+    }
+
     uintptr_t CG_AddGameMessage_Trampoline = 0;
     static const char* gameMessageText = nullptr;
     static int gameMessageShow = 1;
@@ -348,5 +364,8 @@ namespace IWXMVM::IW2::Hooks::HUD
 
         HookManager::CreateHook(Addresses::CG_AddGameMessage, reinterpret_cast<uintptr_t>(CG_AddGameMessage_Hook),
                                 &CG_AddGameMessage_Trampoline);
+
+        HookManager::CreateHook(Addresses::CG_DrawDisconnect, reinterpret_cast<uintptr_t>(CG_DrawDisconnect_Hook),
+                                reinterpret_cast<uintptr_t*>(&CG_DrawDisconnect_Trampoline));
     }
 }  // namespace IWXMVM::IW2::Hooks::HUD

@@ -419,6 +419,15 @@ namespace IWXMVM::GFX
             znear = znearDvar.value().value->floating_point;
         }
 
+        // The depth surface can be larger than the backbuffer (CoD2 sizes it to the desktop in
+        // windowed mode); the scene depth then only occupies its top-left corner
+        D3DSURFACE_DESC depthDesc = {};
+        depthTexture->GetLevelDesc(0, &depthDesc);
+        const float depthUvScaleX =
+            depthDesc.Width > 0 ? static_cast<float>(backBufferDesc.Width) / depthDesc.Width : 1.0f;
+        const float depthUvScaleY =
+            depthDesc.Height > 0 ? static_cast<float>(backBufferDesc.Height) / depthDesc.Height : 1.0f;
+
         const float smallWidth = static_cast<float>(std::max(dofTargetWidth / 4u, 1u));
         const float smallHeight = static_cast<float>(std::max(dofTargetHeight / 4u, 1u));
 
@@ -445,7 +454,7 @@ namespace IWXMVM::GFX
         const float downsampleParams[4] = { znear, PROJECTION_DEPTH_SCALE, dofSettings.nearStart,
                                             dofSettings.nearEnd };
         device->SetPixelShaderConstantF(0, downsampleParams, 1);
-        const float downsampleParams2[4] = { VIEWMODEL_DEPTH_THRESHOLD, 0.0f, 0.0f, 0.0f };
+        const float downsampleParams2[4] = { VIEWMODEL_DEPTH_THRESHOLD, depthUvScaleX, depthUvScaleY, 0.0f };
         device->SetPixelShaderConstantF(1, downsampleParams2, 1);
         drawQuad();
 
@@ -487,6 +496,8 @@ namespace IWXMVM::GFX
                                            1.0f / static_cast<float>(dofTargetWidth),
                                            1.0f / static_cast<float>(dofTargetHeight) };
         device->SetPixelShaderConstantF(2, combineStrength, 1);
+        const float combineDepthUvScale[4] = { depthUvScaleX, depthUvScaleY, 0.0f, 0.0f };
+        device->SetPixelShaderConstantF(3, combineDepthUvScale, 1);
         drawQuad();
 
         device->SetTexture(1, nullptr);

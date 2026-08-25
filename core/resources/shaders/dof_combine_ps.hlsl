@@ -14,6 +14,8 @@ float4 dofParams : register(c0);
 float4 dofRanges : register(c1);
 // x = near blur strength (0..1), y = far blur strength (0..1), zw = sharp texel size
 float4 dofStrength : register(c2);
+// xy = depth uv scale (the depth surface can be larger than the backbuffer)
+float4 depthUvScale : register(c3);
 
 float GetViewDistance(float rawDepth)
 {
@@ -26,7 +28,7 @@ float4 main(PS_INPUT input) : COLOR
     float3 sharp = tex2Dlod(sharpTex, float4(input.uv, 0, 0)).rgb;
     float4 blurred = tex2Dlod(blurTex, float4(input.uv, 0, 0));
 
-    float rawDepth = tex2Dlod(depthTex, float4(input.uv, 0, 0)).x;
+    float rawDepth = tex2Dlod(depthTex, float4(input.uv * depthUvScale.xy, 0, 0)).x;
     float dist = GetViewDistance(rawDepth);
 
     float nearCocSharp = 1.0f - saturate((dist - dofRanges.x) / max(dofRanges.y - dofRanges.x, 1.0f));

@@ -379,7 +379,8 @@ namespace IWXMVM::UI
                 ImGui::Dummy(ImVec2(0, ImGui::GetStyle().ItemSpacing.y * 4));
                 ImGui::PushStyleColor(ImGuiCol_Text, {249.0f / 255.0f, 22.0f / 255.0f, 22.0f / 255.0f, 1.0f});
                 ImGui::PushFont(UIManager::Get().GetBoldFont());
-                ImGui::TextWrapped("Could not find ffmpeg. Please restart the mod through the codmvm launcher!");
+                ImGui::TextWrapped("Could not find ffmpeg. Place ffmpeg.exe in the IWXMVM folder inside your game "
+                                   "directory (or anywhere on PATH) and try again!");
                 ImGui::PopFont();
                 ImGui::PopStyleColor();
             }

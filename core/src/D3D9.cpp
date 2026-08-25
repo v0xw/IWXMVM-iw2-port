@@ -322,7 +322,8 @@ namespace IWXMVM::D3D9
 
         if (Mod::GetGameInterface()->GetGameState() == Types::GameState::InDemo)
         {
-            GFX::GraphicsManager::Get().ApplyDof();
+            // DOF is applied from the game module's CG_Draw2D hook (between the 3D scene and the
+            // 2D pass) so HUD elements stay sharp; the filmtweaks grade the complete frame
             GFX::GraphicsManager::Get().ApplyFilmtweaks();
         }
 

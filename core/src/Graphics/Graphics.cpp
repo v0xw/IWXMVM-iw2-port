@@ -42,6 +42,11 @@ namespace IWXMVM::GFX
         GraphicsManager::Get().SetFilmtweaksSettings(settings);
     }
 
+    void ApplyDofPostProcess()
+    {
+        GraphicsManager::Get().ApplyDof();
+    }
+
     void GraphicsManager::CreateGraphicsResources()
     {
         IDirect3DDevice9* device = D3D9::GetDevice();

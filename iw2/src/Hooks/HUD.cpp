@@ -2,6 +2,7 @@
 #include "HUD.hpp"
 
 #include "Components/CameraManager.hpp"
+#include "Graphics/PostProcessSettings.hpp"
 #include "Utilities/HookManager.hpp"
 #include "../Addresses.hpp"
 #include "../Functions.hpp"
@@ -284,6 +285,13 @@ namespace IWXMVM::IW2::Hooks::HUD
 
     void __cdecl CG_Draw2D_Hook()
     {
+        // the 3D scene (world + viewmodel) is complete at this point but no 2D has been drawn
+        // yet - running DOF here keeps the HUD (killfeed, hitmarkers, kill texts) sharp
+        if (Structures::IsDemoPlaying())
+        {
+            GFX::ApplyDofPostProcess();
+        }
+
         ApplyPlayerFeedbackSuppression();
         SuppressCursorHints();
         MaskHiddenHudElems();

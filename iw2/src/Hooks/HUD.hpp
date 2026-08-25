@@ -22,6 +22,8 @@ namespace IWXMVM::IW2::Hooks::HUD
     extern bool showKillfeedOtherInfo;
     extern bool showKillfeedModMessages;
     extern bool showBloodOverlay;
+    extern glm::vec3 killfeedTeam1Color;  // allies
+    extern glm::vec3 killfeedTeam2Color;  // axis
 
     void Install();
 

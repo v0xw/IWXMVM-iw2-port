@@ -85,6 +85,7 @@ namespace IWXMVM::IW2::Addresses
     constexpr uintptr_t CL_FX_AdjustCamera = 0x00402650;
     constexpr uintptr_t CG_DrawWeapReticle = 0x004C8CB0;  // double __cdecl(); draws the sniper scope overlay when zoomed (else no-op), returns the crosshair fade factor in st0
     constexpr uintptr_t CG_DrawDamageBlend = 0x004C99F0;  // int __cdecl(); full-screen red blend while cg.damageTime > cg.time (the on-hit blood overlay)
+    constexpr uintptr_t CG_GetTeamColor = 0x004D9E50;  // out color vec4 in EAX, team on the stack (1 = axis, 2 = allies); rgb from the g_TeamColor_* dvars, out alpha preserved
 
     constexpr uintptr_t CG_Obituary = 0x004E03F0;  // entityState_t* in EAX (otherEntityNum = victim, attackerEntityNum), localClientNum in DIL
     constexpr uintptr_t cg_centerPrintTime = 0x01519A10;  // int, start time of the active centerprint; 0 = none (CG_DrawCenterString @ 0x4C8360 gates on it). CG_Obituary centerprints the "You killed X" / "Killed by X" texts

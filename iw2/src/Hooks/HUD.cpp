@@ -32,6 +32,9 @@ namespace IWXMVM::IW2::Hooks::HUD
     bool showKillfeedOtherInfo = false;
     bool showKillfeedModMessages = false;
     bool showBloodOverlay = true;
+    // the game's own g_TeamColor_* defaults
+    glm::vec3 killfeedTeam1Color = {0.5f, 0.5f, 1.0f};  // allies
+    glm::vec3 killfeedTeam2Color = {1.0f, 0.5f, 0.5f};  // axis
 
     bool PlayerFeedbackVisible()
     {
@@ -430,6 +433,59 @@ namespace IWXMVM::IW2::Hooks::HUD
         return CG_DrawDisconnect_Trampoline();
     }
 
+    // ---------------------------------------------------------------------------------------------------------
+    // Team colors (killfeed names, crosshair names). CG_GetTeamColor reads the g_TeamColor_* dvars, but those
+    // are DVAR_CONFIG: replicated through configstrings, so during demo playback they are implicitly created
+    // as string dvars and re-applied with the server's values on every gamestate parse (every rewind). Writing
+    // the dvars is a losing battle - substitute our colors at the consumer instead. The original preserves the
+    // output vec4's alpha, so the override only touches rgb.
+    // ---------------------------------------------------------------------------------------------------------
+
+    uintptr_t CG_GetTeamColor_Trampoline = 0;
+
+    static int __cdecl OverrideTeamColor(float* color, int team)
+    {
+        if (!Structures::IsDemoPlaying())
+            return 0;
+
+        const glm::vec3* custom = nullptr;
+        if (team == 2)
+            custom = &killfeedTeam1Color;  // allies
+        else if (team == 1)
+            custom = &killfeedTeam2Color;  // axis
+        if (custom == nullptr)
+            return 0;  // spectators / unknown teams keep the original white
+
+        color[0] = custom->x;
+        color[1] = custom->y;
+        color[2] = custom->z;
+        return 1;
+    }
+
+    void __declspec(naked) CG_GetTeamColor_Hook()
+    {
+        static float* teamColorOut;
+        static int teamColorHandled;
+
+        __asm
+        {
+            mov teamColorOut, eax
+            pushad
+            mov eax, [esp + 32 + 4]  // stack arg past pushad and the return address
+            push eax
+            push teamColorOut
+            call OverrideTeamColor
+            add esp, 8
+            mov teamColorHandled, eax
+            popad
+            cmp teamColorHandled, 0
+            jne handled
+            jmp CG_GetTeamColor_Trampoline
+        handled:
+            ret
+        }
+    }
+
     uintptr_t CG_AddGameMessage_Trampoline = 0;
     static const char* gameMessageText = nullptr;
     static int gameMessageShow = 1;
@@ -466,5 +522,8 @@ namespace IWXMVM::IW2::Hooks::HUD
 
         HookManager::CreateHook(Addresses::CG_DrawWeapReticle, reinterpret_cast<uintptr_t>(CG_DrawWeapReticle_Hook),
                                 reinterpret_cast<uintptr_t*>(&CG_DrawWeapReticle_Trampoline));
+
+        HookManager::CreateHook(Addresses::CG_GetTeamColor, reinterpret_cast<uintptr_t>(CG_GetTeamColor_Hook),
+                                &CG_GetTeamColor_Trampoline);
     }
 }  // namespace IWXMVM::IW2::Hooks::HUD

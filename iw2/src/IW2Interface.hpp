@@ -579,6 +579,21 @@ namespace IWXMVM::IW2
                 return Types::BoneData{.id = -1};
             }
 
+            // While rewinding, the demo replays without the render path running, so entity states
+            // advance while the DObj animation state goes stale; evaluating bones on that mismatch
+            // crashes in the player controller code (e.g. when scrubbing across a round start)
+            if (Components::Rewinding::IsRewinding())
+            {
+                return Types::BoneData{.id = -1};
+            }
+
+            // Only evaluate entities the game itself is currently processing; during round
+            // transitions the followed entity briefly drops out while being respawned
+            if (!Structures::GetEntities()[entityId].currentValid)
+            {
+                return Types::BoneData{.id = -1};
+            }
+
             const auto tagName = Functions::SL_FindString(name);
             if (tagName == 0)
             {

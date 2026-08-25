@@ -579,15 +579,6 @@ namespace IWXMVM::IW2
                 return Types::BoneData{.id = -1};
             }
 
-            // The player bone controller code indexes the animation tables through level_bgs
-            // without checking it, and the game nulls it around cgame restarts (in-demo round
-            // transitions, demo end/reload). Forcing a skeleton evaluation in that window reads
-            // through the null pointer and crashes - this was the cause of both the swallowed
-            // "interface rendering" errors and the hard crashes with the bone camera active.
-            if (*reinterpret_cast<void**>(Addresses::level_bgs) == nullptr)
-            {
-                return Types::BoneData{.id = -1};
-            }
 
             // While rewinding, the demo replays without the render path running, so entity states
             // advance while the DObj animation state goes stale; evaluating bones on that mismatch
@@ -636,8 +627,26 @@ namespace IWXMVM::IW2
             const auto entity = &Structures::GetEntities()[entityId];
             float axis[3][3];
             float origin[3];
-            if (!Functions::CG_DObjGetWorldTagMatrix(tagName, dobj, entity, axis) ||
-                !Functions::CG_DObjGetWorldTagPos(tagName, dobj, entity, origin))
+
+            // The game only sets level_bgs around its own animation processing and nulls it
+            // afterwards. Our tag query triggers a lazy skeleton evaluation (bone controllers)
+            // whenever the entity wasn't rendered this frame - off-screen players, round
+            // transitions - and the controller code would then read the animation tables through
+            // the null pointer and crash. Provide the client bgs for the evaluation, like the
+            // game does around its own calls, and restore the previous value afterwards.
+            auto& levelBgs = *reinterpret_cast<uintptr_t*>(Addresses::level_bgs);
+            const auto previousBgs = levelBgs;
+            if (levelBgs == 0)
+            {
+                levelBgs = Addresses::cg_bgs;
+            }
+
+            const bool gotTag = Functions::CG_DObjGetWorldTagMatrix(tagName, dobj, entity, axis) &&
+                                Functions::CG_DObjGetWorldTagPos(tagName, dobj, entity, origin);
+
+            levelBgs = previousBgs;
+
+            if (!gotTag)
             {
                 return Types::BoneData{.id = -1};
             }

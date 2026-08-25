@@ -149,7 +149,8 @@ namespace IWXMVM::IW2::Addresses
     constexpr uintptr_t cls_cgameStarted = 0x0068A518;
     constexpr uintptr_t cls_frametime = 0x0068A51C;
     constexpr uintptr_t cls_realtime = 0x0068A520;
-    constexpr uintptr_t level_bgs = 0x019A1C78;  // bgs_t*; the client background game state (animation tables etc.), null around cgame restarts
+    constexpr uintptr_t level_bgs = 0x019A1C78;  // bgs_t*; scoped "current bgs" pointer the game sets around its own animation processing and nulls afterwards
+    constexpr uintptr_t cg_bgs = 0x0151AD98;     // bgs_t; the client-side bgs struct (animation tables etc.) that level_bgs points at during cgame animation calls
 
     // --- globals: cgame ------------------------------------------------------------------------------------------
     constexpr uintptr_t cgs_viewport = 0x014E5704;  // int x, y, width, height

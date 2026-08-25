@@ -23,6 +23,14 @@ namespace IWXMVM::D3D9
     std::uint32_t gameWidth = 0;
     std::uint32_t gameHeight = 0;
 
+    // IW2 only: CoD2's offscreen passes (glow, water, ...) share the scene depth stencil, which
+    // would scribble over our intercepted depth texture after the scene has rendered. We give
+    // those passes a decoy depth surface instead (see SetRenderTarget_Hook).
+    IDirect3DSurface9* intzSurface = nullptr;         // owned ref to level 0 of depthTexture
+    IDirect3DSurface9* decoyDepthSurface = nullptr;   // stand-in depth for offscreen passes
+    IDirect3DSurface9* gameBackBufferId = nullptr;    // identity for comparison only, not a ref
+    bool mainDepthStencilSeen = false;
+
     typedef HRESULT(__stdcall* EndScene_t)(IDirect3DDevice9* pDevice);
     EndScene_t EndScene;
     EndScene_t ReshadeOriginalEndScene;
@@ -43,11 +51,35 @@ namespace IWXMVM::D3D9
     CreateDepthStencilSurface_t CreateDepthStencilSurface;
     typedef HRESULT(__stdcall* SetDepthStencilSurface_t)(IDirect3DDevice9* pDevice, IDirect3DSurface9* pNewZStencil);
     SetDepthStencilSurface_t SetDepthStencilSurface;
+    typedef HRESULT(__stdcall* SetRenderTarget_t)(IDirect3DDevice9* pDevice, DWORD RenderTargetIndex,
+                                                  IDirect3DSurface9* pRenderTarget);
+    SetRenderTarget_t SetRenderTarget;
 
     std::optional<void*> reshadeEndSceneAddress;
     bool IsReshadePresent()
     {
         return reshadeEndSceneAddress.has_value();
+    }
+
+    void ReleaseInterceptedDepthResources()
+    {
+        if (intzSurface)
+        {
+            intzSurface->Release();
+            intzSurface = nullptr;
+        }
+        if (decoyDepthSurface)
+        {
+            decoyDepthSurface->Release();
+            decoyDepthSurface = nullptr;
+        }
+        if (depthTexture)
+        {
+            depthTexture->Release();
+            depthTexture = nullptr;
+        }
+        gameBackBufferId = nullptr;
+        mainDepthStencilSeen = false;
     }
 
     HRESULT __stdcall CreateDepthStencilSurface_Hook(IDirect3DDevice9* pDevice, UINT Width, UINT Height,
@@ -65,17 +97,37 @@ namespace IWXMVM::D3D9
         LOG_DEBUG("CreateDepthStencilSurface called: {}x{}, format {}, multisample {} (expected game resolution {}x{})",
                   Width, Height, static_cast<int>(Format), static_cast<int>(MultiSample), gameWidth, gameHeight);
 
-        // CoD2 only creates two kinds of depth stencil surfaces: the fullscreen one and 128x128
-        // shadow cookies, so any large enough surface is the one we want; gameWidth/gameHeight
-        // can be stale or unset depending on how the game (re)created its device
-        const bool isMainDepthStencil =
-            (Width == gameWidth && Height == gameHeight) ||
-            (Mod::GetGameInterface()->GetGame() == Types::Game::IW2 && Width >= 512 && Height >= 384);
+        bool intercept;
+        if (Mod::GetGameInterface()->GetGame() == Types::Game::IW2)
+        {
+            // CoD2 creates the scene depth stencil first; later large ones (the RT-shared depth
+            // stencil when MSAA is on) and the 128x128 shadow cookies must not be intercepted
+            const bool isLarge = Width >= 512 && Height >= 384;
+            intercept = false;
+            if (isLarge && !mainDepthStencilSeen)
+            {
+                mainDepthStencilSeen = true;
+                intercept = MultiSample == D3DMULTISAMPLE_NONE;
+                if (!intercept)
+                {
+                    LOG_DEBUG("Scene depth stencil is multisampled; depth-based features unavailable");
+                }
+            }
+        }
+        else
+        {
+            intercept = MultiSample == D3DMULTISAMPLE_NONE && Width == gameWidth && Height == gameHeight;
+        }
 
-        if (MultiSample == D3DMULTISAMPLE_NONE && isMainDepthStencil)
+        if (intercept)
         {
             LOG_DEBUG("Intercepting depth stencil surface creation");
 
+            if (intzSurface)
+            {
+                intzSurface->Release();
+                intzSurface = nullptr;
+            }
 			if (depthTexture)
 			{
 				depthTexture->Release();
@@ -92,6 +144,8 @@ namespace IWXMVM::D3D9
             hr = depthTexture->GetSurfaceLevel(0, ppSurface);
             if (SUCCEEDED(hr))
             {
+                intzSurface = *ppSurface;
+                intzSurface->AddRef();
                 LOG_DEBUG("Successfully changed depth stencil format");
             } else
             {
@@ -103,6 +157,84 @@ namespace IWXMVM::D3D9
         }
 
         return CreateDepthStencilSurface(pDevice, Width, Height, Format, MultiSample, MultisampleQuality, Discard, ppSurface, pSharedHandle);
+    }
+
+    IDirect3DSurface9* GetBackBufferId(IDirect3DDevice9* pDevice)
+    {
+        if (!gameBackBufferId)
+        {
+            IDirect3DSurface9* backBuffer = nullptr;
+            if (SUCCEEDED(pDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &backBuffer)) && backBuffer)
+            {
+                gameBackBufferId = backBuffer;
+                backBuffer->Release();
+            }
+        }
+        return gameBackBufferId;
+    }
+
+    void EnsureDecoyDepthSurface(IDirect3DDevice9* pDevice)
+    {
+        if (decoyDepthSurface || !intzSurface)
+        {
+            return;
+        }
+
+        D3DSURFACE_DESC desc = {};
+        intzSurface->GetDesc(&desc);
+
+        // created through the trampoline so it doesn't run through our own hook
+        if (FAILED(CreateDepthStencilSurface(pDevice, desc.Width, desc.Height, D3DFMT_D24S8, D3DMULTISAMPLE_NONE, 0,
+                                             FALSE, &decoyDepthSurface, nullptr)))
+        {
+            LOG_ERROR("Failed to create decoy depth stencil surface");
+            decoyDepthSurface = nullptr;
+        }
+    }
+
+    HRESULT __stdcall SetRenderTarget_Hook(IDirect3DDevice9* pDevice, DWORD RenderTargetIndex,
+                                           IDirect3DSurface9* pRenderTarget)
+    {
+        HRESULT hr = SetRenderTarget(pDevice, RenderTargetIndex, pRenderTarget);
+
+        if (FAILED(hr) || RenderTargetIndex != 0 || !pRenderTarget || !intzSurface ||
+            Mod::GetGameInterface()->GetGame() != Types::Game::IW2)
+        {
+            return hr;
+        }
+
+        if (!GetBackBufferId(pDevice))
+        {
+            return hr;
+        }
+
+        IDirect3DSurface9* currentDepth = nullptr;
+        pDevice->GetDepthStencilSurface(&currentDepth);
+
+        if (pRenderTarget == gameBackBufferId)
+        {
+            // Scene rendering: depth has to go into our intercepted texture
+            if (currentDepth == decoyDepthSurface && decoyDepthSurface)
+            {
+                SetDepthStencilSurface(pDevice, intzSurface);
+            }
+        }
+        else if (currentDepth == intzSurface)
+        {
+            // Offscreen pass (glow, water, ...): keep it from overwriting the scene depth
+            EnsureDecoyDepthSurface(pDevice);
+            if (decoyDepthSurface)
+            {
+                SetDepthStencilSurface(pDevice, decoyDepthSurface);
+            }
+        }
+
+        if (currentDepth)
+        {
+            currentDepth->Release();
+        }
+
+        return hr;
     }
 
     HRESULT __stdcall CreateDevice_Hook(IDirect3D9* pInterface, UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow,
@@ -118,6 +250,7 @@ namespace IWXMVM::D3D9
         }
 
 		foundInterceptedDepthTexture = false;
+        ReleaseInterceptedDepthResources();
 
         HRESULT hr = CreateDevice(pInterface, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters,
             ppReturnedDeviceInterface);
@@ -264,12 +397,8 @@ namespace IWXMVM::D3D9
             gameHeight = pPresentationParameters->BackBufferHeight;
         }
 
-		if (depthTexture)
-		{
-			depthTexture->Release();
-			depthTexture = nullptr;
-			foundInterceptedDepthTexture = false;
-		}
+        ReleaseInterceptedDepthResources();
+        foundInterceptedDepthTexture = false;
 
         const bool wasUIInitialized = UI::UIManager::Get().IsInitialized();
         if (wasUIInitialized)
@@ -297,6 +426,28 @@ namespace IWXMVM::D3D9
 
     HRESULT __stdcall SetDepthStencilSurface_Hook(IDirect3DDevice9* pDevice, IDirect3DSurface9* pNewZStencil)
     {
+        // IW2: if the game binds the scene depth stencil while an offscreen render target is
+        // active, give it the decoy instead (see SetRenderTarget_Hook)
+        if (pNewZStencil && pNewZStencil == intzSurface &&
+            Mod::GetGameInterface()->GetGame() == Types::Game::IW2)
+        {
+            IDirect3DSurface9* currentRenderTarget = nullptr;
+            if (SUCCEEDED(pDevice->GetRenderTarget(0, &currentRenderTarget)) && currentRenderTarget)
+            {
+                const bool offscreen = GetBackBufferId(pDevice) && currentRenderTarget != gameBackBufferId;
+                currentRenderTarget->Release();
+
+                if (offscreen)
+                {
+                    EnsureDecoyDepthSurface(pDevice);
+                    if (decoyDepthSurface)
+                    {
+                        return SetDepthStencilSurface(pDevice, decoyDepthSurface);
+                    }
+                }
+            }
+        }
+
         HRESULT hr = SetDepthStencilSurface(pDevice, pNewZStencil);
         if (!IsReshadePresent() || foundInterceptedDepthTexture || !pNewZStencil)
         {
@@ -456,6 +607,8 @@ namespace IWXMVM::D3D9
             (std::uintptr_t*)&EndScene);
         HookManager::CreateHook((std::uintptr_t)d3d9DeviceVTable[39], (std::uintptr_t)SetDepthStencilSurface_Hook,
             (std::uintptr_t*)&SetDepthStencilSurface);
+        HookManager::CreateHook((std::uintptr_t)d3d9DeviceVTable[37], (std::uintptr_t)SetRenderTarget_Hook,
+            (std::uintptr_t*)&SetRenderTarget);
         
         if (reshadeEndSceneAddress.has_value())
         {

@@ -44,6 +44,7 @@ namespace IWXMVM::IW2::Addresses
     constexpr uintptr_t Cmd_ExecuteString = 0x004214C0;
 
     constexpr uintptr_t Dvar_GetDvarByName = 0x004373A0;  // dvar_t* __cdecl(const char* name)
+    constexpr uintptr_t Dvar_RegisterColor = 0x00438410;  // dvar_t* __cdecl(const char* name, float r, float g, float b, float a, unsigned short flags)
     constexpr uintptr_t Dvar_SetBool = 0x00438B90;        // void __cdecl(dvar_t*, int)
     constexpr uintptr_t Dvar_SetInt = 0x00438BF0;         // void __cdecl(dvar_t*, int)
     constexpr uintptr_t Dvar_SetFloat = 0x00438C10;       // void __cdecl(dvar_t*, float)

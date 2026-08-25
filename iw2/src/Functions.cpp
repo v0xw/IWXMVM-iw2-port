@@ -21,6 +21,14 @@ namespace IWXMVM::IW2::Functions
         return Dvar_GetDvarByName(buffer);
     }
 
+    Structures::dvar_t* Dvar_RegisterColor(const char* name, float r, float g, float b, float a, uint16_t flags)
+    {
+        typedef dvar_t*(__cdecl * Dvar_RegisterColor_t)(const char* name, float r, float g, float b, float a,
+                                                        uint16_t flags);
+        static const auto Register = reinterpret_cast<Dvar_RegisterColor_t>(Addresses::Dvar_RegisterColor);
+        return Register(name, r, g, b, a, flags);
+    }
+
     void Dvar_SetBool(dvar_t* dvar, bool value)
     {
         typedef void(__cdecl * Dvar_SetBool_t)(dvar_t*, int);

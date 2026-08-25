@@ -525,6 +525,15 @@ namespace IWXMVM::IW2
             else
                 Patches::GetGamePatches().CG_AddObituaryMessage.Apply();
 
+            // CG_GetTeamColor (used for the killfeed names, crosshair names etc.) looks these dvars
+            // up by name and falls back to white when they don't exist - and the game only registers
+            // them in the server game init, which never runs during demo playback. Register them
+            // ourselves with the game's own defaults, registration call and flags (as 0x4FB5A0 does).
+            if (!Functions::FindDvar("g_TeamColor_Allies"))
+                Functions::Dvar_RegisterColor("g_TeamColor_Allies", 0.5f, 0.5f, 1.0f, 1.0f, 4352);
+            if (!Functions::FindDvar("g_TeamColor_Axis"))
+                Functions::Dvar_RegisterColor("g_TeamColor_Axis", 1.0f, 0.5f, 0.5f, 1.0f, 4352);
+
             WriteVec3Dvar("g_TeamColor_Allies", hudInfo.killfeedTeam1Color);
             WriteVec3Dvar("g_TeamColor_Axis", hudInfo.killfeedTeam2Color);
         }

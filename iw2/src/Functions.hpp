@@ -6,6 +6,7 @@ namespace IWXMVM::IW2::Functions
 {
     // dvars
     Structures::dvar_t* FindDvar(std::string_view name);
+    Structures::dvar_t* Dvar_RegisterColor(const char* name, float r, float g, float b, float a, uint16_t flags);
     void Dvar_SetBool(Structures::dvar_t* dvar, bool value);
     void Dvar_SetInt(Structures::dvar_t* dvar, int value);
     void Dvar_SetFloat(Structures::dvar_t* dvar, float value);

@@ -283,13 +283,72 @@ namespace IWXMVM::IW2::Hooks::HUD
         }
     }  // namespace
 
+    // ---------------------------------------------------------------------------------------------------------
+    // DOF between the 3D scene and the 2D pass. The cgame is a command-queue frontend: CG_Draw2D only enqueues
+    // render commands, which the backend executes at frame end - so the DOF pass cannot simply run from here.
+    // Instead a SetViewport command with marker values is enqueued at this point (after the scene view command,
+    // before the 2D commands), and the backend's SetViewport handler - swapped in the render command dispatch
+    // table for a wrapper - recognizes the marker when the command stream reaches it, runs the DOF post process
+    // on the freshly rendered scene, and consumes the command. Real viewport commands pass through untouched.
+    // The table entry is re-checked every frame since vid_restart reloads the renderer DLL.
+    // ---------------------------------------------------------------------------------------------------------
+
+    namespace
+    {
+        constexpr int DOF_MARKER_VIEWPORT[4] = {1, 2, 3, 1};  // never produced by the game
+        constexpr uint32_t RB_CMD_SET_VIEWPORT = 13;
+
+        typedef void(__cdecl* RB_Command_t)(uint8_t** cmd);
+        RB_Command_t RB_SetViewportCmd_Original = nullptr;
+
+        void __cdecl RB_SetViewportCmd_Wrapper(uint8_t** cmd)
+        {
+            const auto values = reinterpret_cast<const int*>(*cmd + 4);
+            if (values[0] == DOF_MARKER_VIEWPORT[0] && values[1] == DOF_MARKER_VIEWPORT[1] &&
+                values[2] == DOF_MARKER_VIEWPORT[2] && values[3] == DOF_MARKER_VIEWPORT[3])
+            {
+                GFX::ApplyDofPostProcess();
+                *cmd += *reinterpret_cast<const uint16_t*>(*cmd + 2);  // consume the marker command
+                return;
+            }
+
+            RB_SetViewportCmd_Original(cmd);
+        }
+
+        bool EnsureViewportCmdWrapped()
+        {
+            const auto tableAddress = Addresses::Gfx(Addresses::GfxRVA::RB_RenderCommandTable);
+            if (tableAddress == 0)
+                return false;
+
+            const auto entry = reinterpret_cast<void**>(tableAddress) + RB_CMD_SET_VIEWPORT;
+            if (*entry == reinterpret_cast<void*>(RB_SetViewportCmd_Wrapper))
+                return true;
+
+            // first call, or the renderer DLL was reloaded by a vid_restart
+            const auto original = reinterpret_cast<uintptr_t>(*entry);
+            const auto moduleBase = reinterpret_cast<uintptr_t>(Addresses::GetGfxModule());
+            if (original - moduleBase > 0x400000)  // sanity: the handler must live inside the module
+                return false;
+
+            RB_SetViewportCmd_Original = reinterpret_cast<RB_Command_t>(original);
+            *entry = reinterpret_cast<void*>(RB_SetViewportCmd_Wrapper);
+            return true;
+        }
+    }  // namespace
+
     void __cdecl CG_Draw2D_Hook()
     {
-        // the 3D scene (world + viewmodel) is complete at this point but no 2D has been drawn
-        // yet - running DOF here keeps the HUD (killfeed, hitmarkers, kill texts) sharp
-        if (Structures::IsDemoPlaying())
+        // the scene view command is already queued at this point, the 2D commands are not - the
+        // marker lands exactly between them in the backend's command stream
+        if (Structures::IsDemoPlaying() && GFX::GetDofSettings().enabled && EnsureViewportCmdWrapped())
         {
-            GFX::ApplyDofPostProcess();
+            typedef void(__cdecl* R_AddCmdSetViewport_t)(int x, int y, int w, int h);
+            if (const auto addCmd = Addresses::Gfx(Addresses::GfxRVA::R_AddCmdSetViewport))
+            {
+                reinterpret_cast<R_AddCmdSetViewport_t>(addCmd)(DOF_MARKER_VIEWPORT[0], DOF_MARKER_VIEWPORT[1],
+                                                                DOF_MARKER_VIEWPORT[2], DOF_MARKER_VIEWPORT[3]);
+            }
         }
 
         ApplyPlayerFeedbackSuppression();

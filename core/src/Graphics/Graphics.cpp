@@ -136,15 +136,21 @@ namespace IWXMVM::GFX
         };
 
         hr = device->CreateVertexBuffer(sizeof(squareData), D3DUSAGE_WRITEONLY, NULL, D3DPOOL_DEFAULT, &depthPassVertices, nullptr);
-        if (FAILED(hr))
+        if (FAILED(hr) || depthPassVertices == nullptr)
         {
+            // creating pool-default resources fails while the device is still lost, which happens
+            // when a reset is attempted before the game regains focus
             LOG_ERROR("Failed to create depth pass vertex buffer");
+            depthPassVertices = nullptr;
+            return;
         }
 
         void* tmp = nullptr;
-        depthPassVertices->Lock(0, sizeof(squareData), &tmp, NULL);
-        std::memcpy(tmp, squareData, sizeof(squareData));
-        depthPassVertices->Unlock();
+        if (SUCCEEDED(depthPassVertices->Lock(0, sizeof(squareData), &tmp, NULL)) && tmp != nullptr)
+        {
+            std::memcpy(tmp, squareData, sizeof(squareData));
+            depthPassVertices->Unlock();
+        }
 
         D3DVERTEXELEMENT9 decl[] = {
             {0, offsetof(Types::FSVertex, p), D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0},
@@ -201,10 +207,20 @@ namespace IWXMVM::GFX
     }
     void GraphicsManager::DestroyDepthPassResources()
     {
-        depthPassPS->Release();
-        depthPassVS->Release();
-        depthPassVDecl->Release();
-        depthPassVertices->Release();
+        // any of these can be null when creation failed on a lost device, and this runs again on
+        // every reset - so it has to tolerate both null and being called twice
+        const auto safeRelease = [](auto*& resource) {
+            if (resource != nullptr)
+            {
+                resource->Release();
+                resource = nullptr;
+            }
+        };
+
+        safeRelease(depthPassPS);
+        safeRelease(depthPassVS);
+        safeRelease(depthPassVDecl);
+        safeRelease(depthPassVertices);
     }
 
     namespace

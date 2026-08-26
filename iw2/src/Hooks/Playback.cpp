@@ -3,6 +3,7 @@
 
 #include "Components/Playback.hpp"
 #include "Components/Rewinding.hpp"
+#include "D3D9.hpp"
 #include "Utilities/HookManager.hpp"
 #include "Events.hpp"
 #include "Mod.hpp"
@@ -300,10 +301,18 @@ namespace IWXMVM::IW2::Hooks::Playback
     }
 
     // ---------------------------------------------------------------------------------------------------------
-    // SCR_UpdateFrame: skip rendering entirely while the game window is minimized (fullscreen CoD2 already does
-    // this, windowed does not). Rendering into a minimized window eventually loses the D3D device, and the
-    // renderer's silent device recreation executes a frame that still references freed frontend data - observed
-    // as an access violation in RB_TessStaticModelCached while a paused demo sat in the background.
+    // SCR_UpdateFrame: skip rendering entirely while the game window is minimized and the D3D device is still
+    // healthy. Rendering into a minimized window eventually loses the device, and the renderer's silent device
+    // recreation executes a frame that still references freed frontend data - observed as an access violation in
+    // RB_TessStaticModelCached while a paused demo sat minimized in the background.
+    //
+    // Skipping is only safe while the device is healthy. In exclusive fullscreen the device is already lost
+    // while alt-tabbed away, and the renderer only learns that by rendering: the frame it does render fails at
+    // Present / TestCooperativeLevel, which is what makes it flag the loss and stop handing out static model
+    // cache surfaces until it has recovered. Skipping robs it of that, so the frame built on the way back in
+    // still carries cached static model surfaces - and the device recovery that runs in the middle of that same
+    // frame frees and reallocates the cache underneath them, which faults in RB_TessStaticModelCached. Letting
+    // the game render its (cheap, immediately aborted) lost-device frames keeps its own handling intact.
     // ---------------------------------------------------------------------------------------------------------
 
     typedef DWORD(__cdecl* SCR_UpdateFrame_t)();
@@ -314,7 +323,11 @@ namespace IWXMVM::IW2::Hooks::Playback
         const auto hwnd = *At<HWND>(Addresses::win_hwnd);
         if (hwnd && ::IsIconic(hwnd))
         {
-            return ::GetCurrentThreadId();  // what the original returns; callers use it as a recursion guard
+            const auto device = D3D9::GetDevice();
+            if (device == nullptr || device->TestCooperativeLevel() == D3D_OK)
+            {
+                return ::GetCurrentThreadId();  // what the original returns; callers use it as a recursion guard
+            }
         }
 
         return SCR_UpdateFrame_Trampoline();

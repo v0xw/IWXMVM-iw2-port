@@ -135,7 +135,8 @@ namespace IWXMVM::UI
             ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * (1.0f - columnPercent) - ImGui::GetStyle().WindowPadding.x);
             ImGui::DragFloat("##gameViewBoneCameraFOV", &boneCamera->GetFov(), 1, 1, 180, "%.0f");
 
-            ImGui::BeginDisabled();
+            // stays the disabled placeholder on games where smoothing isn't implemented
+            ImGui::BeginDisabled(!Components::BoneCamera::IsTemporalSmoothingSupported());
             ImGui::AlignTextToFramePadding();
             ImGui::Text("Smooth Movement");
             ImGui::SameLine();

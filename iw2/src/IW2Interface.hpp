@@ -60,20 +60,6 @@ namespace IWXMVM::IW2
         {
             Events::RegisterListener(EventType::OnCameraChanged, Hooks::Camera::OnCameraChanged);
             Events::RegisterListener(EventType::PreDemoLoad, DemoParser::Reset);
-
-            // The engine picks model LODs by distance to the recorded player's eyes (CL_SetLodOrigin),
-            // not the free camera, so distant players render low-poly no matter how close the camera
-            // gets. r_forceLod 0 ("high") makes R_BeginFrame override every xmodel's LOD distances so
-            // all models keep their highest LOD at any distance - always wanted for moviemaking, so
-            // force it whenever a demo is loaded. Cheat protected; write the value directly, and
-            // reapply every frame because the engine resets cheat dvars on demo load.
-            Events::RegisterListener(EventType::OnFrame, [this]() {
-                if (auto forceLod = Functions::FindDvar("r_forceLod");
-                    forceLod && forceLod->type == Structures::DVAR_TYPE_ENUM)
-                    forceLod->value.integer = GetGameState() == Types::GameState::InDemo
-                                                  ? 0
-                                                  : forceLod->defaultValue.integer;
-            });
         }
 
         Types::Features GetSupportedFeatures() final

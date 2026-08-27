@@ -27,6 +27,8 @@ namespace IWXMVM::IW2::Addresses
     constexpr uintptr_t Com_Frame = 0x00435240;
     constexpr uintptr_t Com_ModifyMsec = 0x00434CB0;  // int __cdecl(int msec)
     constexpr uintptr_t SV_Frame = 0x0045C550;
+    constexpr uintptr_t XModelGetLodForDist = 0x00492090;  // int __cdecl(XModel*, float dist); -1 = do not draw
+
     constexpr uintptr_t CL_Frame = 0x0040F850;
     constexpr uintptr_t SCR_UpdateFrame = 0x00414B20;  // no args (returns GetCurrentThreadId); renders one frame
 

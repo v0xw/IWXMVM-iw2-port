@@ -126,6 +126,7 @@
     <ClCompile Include="src\Hooks\Diagnostics.cpp" />
     <ClCompile Include="src\Hooks\HUD.cpp" />
     <ClCompile Include="src\Hooks\Kills.cpp" />
+    <ClCompile Include="src\Hooks\Models.cpp" />
     <ClCompile Include="src\Hooks\Playback.cpp" />
     <ClCompile Include="src\StdInclude.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -141,6 +142,7 @@
     <ClInclude Include="src\Hooks\Diagnostics.hpp" />
     <ClInclude Include="src\Hooks\HUD.hpp" />
     <ClInclude Include="src\Hooks\Kills.hpp" />
+    <ClInclude Include="src\Hooks\Models.hpp" />
     <ClInclude Include="src\Hooks\Playback.hpp" />
     <ClInclude Include="src\IW2Interface.hpp" />
     <ClInclude Include="src\Patches.hpp" />

@@ -5,6 +5,7 @@
 #include "Hooks/Camera.hpp"
 #include "Hooks/HUD.hpp"
 #include "Hooks/Kills.hpp"
+#include "Hooks/Models.hpp"
 #include "Hooks/Diagnostics.hpp"
 
 namespace IWXMVM::IW2::Hooks
@@ -16,5 +17,6 @@ namespace IWXMVM::IW2::Hooks
         Hooks::Camera::Install();
         Hooks::HUD::Install();
         Hooks::Kills::Install();
+        Hooks::Models::Install();
     }
 }  // namespace IWXMVM::IW2::Hooks

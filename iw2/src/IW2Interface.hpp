@@ -64,7 +64,7 @@ namespace IWXMVM::IW2
 
         Types::Features GetSupportedFeatures() final
         {
-            return Types::Features_None;
+            return Types::Features_ForceHighestLod;
         }
 
         // ----------------------------------------------------------------------------------------------------
@@ -382,6 +382,24 @@ namespace IWXMVM::IW2
         void SetFilmtweaks(Types::Filmtweaks filmtweaks) final
         {
             GFX::SetFilmtweaksSettings(filmtweaks);
+        }
+
+        bool GetForceHighestLod() final
+        {
+            const auto forceLod = Functions::FindDvar("r_forceLod");
+            return forceLod && forceLod->type == Structures::DVAR_TYPE_ENUM && forceLod->value.integer == 0;
+        }
+
+        void SetForceHighestLod(bool enabled) final
+        {
+            // The engine picks model LODs by distance to the recorded player's eyes (CL_SetLodOrigin),
+            // not the free camera, so distant players stay low-poly no matter how close the camera gets.
+            // r_forceLod 0 ("high") makes R_BeginFrame override every xmodel's LOD distances so all
+            // models keep their highest LOD at any distance. Cheat protected; write the value directly
+            // (R_BeginFrame re-reads it every frame, no vid_restart needed)
+            if (auto forceLod = Functions::FindDvar("r_forceLod");
+                forceLod && forceLod->type == Structures::DVAR_TYPE_ENUM)
+                forceLod->value.integer = enabled ? 0 : forceLod->defaultValue.integer;
         }
 
         bool GetDvarBool(const char* name, bool fallback = true)

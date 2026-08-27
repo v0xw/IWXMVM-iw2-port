@@ -23,6 +23,7 @@ namespace IWXMVM::Components
 
             // MISC
             Types::HudInfo hudInfo;
+            bool forceHighestLod = false;
         };
 
         static bool Load(std::filesystem::path file, Settings& visuals);

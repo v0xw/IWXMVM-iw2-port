@@ -32,6 +32,7 @@ namespace IWXMVM::UI
         void UpdateSun();
         void UpdateFilmtweaks();
         void UpdateHudInfo();
+        void UpdateForceLod();
 
         void LoadPreset(Preset);
         void AddPresetToRecent(Preset);

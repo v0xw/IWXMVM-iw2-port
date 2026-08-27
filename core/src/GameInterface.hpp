@@ -93,6 +93,16 @@ namespace IWXMVM
         virtual void SetFilmtweaks(Types::Filmtweaks) = 0;
         virtual void SetHudInfo(Types::HudInfo) = 0;
 
+        // Force every model to its highest LOD regardless of distance (for cinematics);
+        // games that do not support this keep the no-op defaults
+        virtual bool GetForceHighestLod()
+        {
+            return false;
+        }
+        virtual void SetForceHighestLod(bool)
+        {
+        }
+
         // Required for BoneCamera
         virtual std::vector<Types::Entity> GetEntities() = 0;
         virtual Types::BoneData GetBoneData(int32_t entityId, const std::string& name) = 0;

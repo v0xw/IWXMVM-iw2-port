@@ -224,8 +224,12 @@ namespace IWXMVM::UI
 
         if (visuals.hudInfo.show2DElements)
         {
+            // everything below only applies while 2D elements are on; the indentation (and the
+            // dropped "Show " prefixes) make that relationship visible
+            ImGui::Indent();
+
             ImGui::AlignTextToFramePadding();
-            ImGui::Text("Show Player HUD");
+            ImGui::Text("Player HUD");
             ImGui::SameLine();
             ImGui::SetCursorPosX(checkboxColumnPosition);
             ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
@@ -235,21 +239,21 @@ namespace IWXMVM::UI
             const bool granularHudToggles = !visuals.hudToggles.empty();
 
             ImGui::AlignTextToFramePadding();
-            ImGui::Text((features & Types::Features_NoFlashbangs) ? "Show Shellshock" : "Show Shellshock/Flashbang");
+            ImGui::Text((features & Types::Features_NoFlashbangs) ? "Shellshock" : "Shellshock/Flashbang");
             ImGui::SameLine();
             ImGui::SetCursorPosX(checkboxColumnPosition);
             ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
             modified = ImGui::Checkbox("##showFlashbangCheckbox", &visuals.hudInfo.showShellshock) || modified;
 
             ImGui::AlignTextToFramePadding();
-            ImGui::Text("Show Crosshair");
+            ImGui::Text("Crosshair");
             ImGui::SameLine();
             ImGui::SetCursorPosX(checkboxColumnPosition);
             ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
             modified = ImGui::Checkbox("##showCrosshairCheckbox", &visuals.hudInfo.showCrosshair) || modified;
             
             ImGui::AlignTextToFramePadding();
-            ImGui::Text("Show Score");
+            ImGui::Text("Score");
             ImGui::SameLine();
             ImGui::SetCursorPosX(checkboxColumnPosition);
             ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
@@ -258,7 +262,7 @@ namespace IWXMVM::UI
             if (!granularHudToggles)  // covered by the granular toggles below
             {
                 ImGui::AlignTextToFramePadding();
-                ImGui::Text("Show Icons and Text");
+                ImGui::Text("Icons and Text");
                 ImGui::SameLine();
                 ImGui::SetCursorPosX(checkboxColumnPosition);
                 ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
@@ -266,7 +270,7 @@ namespace IWXMVM::UI
             }
 
             ImGui::AlignTextToFramePadding();
-            ImGui::Text("Show Blood Overlay");
+            ImGui::Text("Blood Overlay");
             ImGui::SameLine();
             ImGui::SetCursorPosX(checkboxColumnPosition);
             ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
@@ -289,7 +293,7 @@ namespace IWXMVM::UI
             ImGui::Dummy(ImVec2(0.0f, 20.0f));
 
             ImGui::AlignTextToFramePadding();
-            ImGui::Text("Show Killfeed");
+            ImGui::Text("Killfeed");
             ImGui::SameLine();
             ImGui::SetCursorPosX(ImGui::GetWindowWidth() * 0.4f);
             ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
@@ -325,6 +329,8 @@ namespace IWXMVM::UI
             ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
             modified = ImGui::ColorEdit3("##killfeedTeam2Color", glm::value_ptr(visuals.hudInfo.killfeedTeam2Color)) ||
                        modified;
+
+            ImGui::Unindent();
         }
         
         ImGui::Dummy(ImVec2(0.0f, 20.0f));

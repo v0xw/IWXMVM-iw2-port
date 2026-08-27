@@ -499,22 +499,22 @@ namespace IWXMVM::IW2
             // ids are the historical preset keys (persisted as "iwxmvm_ui_<id>"); toggles marked
             // requiresModDemo control elements only mod (zPAM) demos contain
             return {
-                {"showhitmarkers", "Show Hitmarkers", Section::Main, Hooks::HUD::showHitmarkers, true},
-                {"showkilledby", "Show Killed-by Text", Section::Main, Hooks::HUD::showKilledByMessages, false},
-                {"showtimer", "Show Timer", Section::Main, Hooks::HUD::showTimer, false},
-                {"showplayersleft", "Show Players Left Alive", Section::Main, Hooks::HUD::showPlayersLeftAlive, true},
-                {"showhints", "Show Hints", Section::Main, Hooks::HUD::showHints, false},
-                {"showteammateicons", "Show Teammate Icons", Section::Main, Hooks::HUD::showTeammateIcons, false},
-                {"showchat", "Show Chat", Section::Main, Hooks::HUD::showChat, false},
-                {"showbombtimer", "Show Bomb Timer", Section::Main, Hooks::HUD::showBombTimer, false},
-                {"showmodtext", "Show zPAM Text", Section::Main, Hooks::HUD::showModText, true},
-                {"showkillfeedkills", "Show Kills", Section::KillfeedFilters, Hooks::HUD::showKillfeedKills, false},
-                {"showkillfeedbomb", "Show Bomb Plants", Section::KillfeedFilters,
-                 Hooks::HUD::showKillfeedBombEvents, false},
-                {"showkillfeedother", "Show Other Info", Section::KillfeedFilters,
-                 Hooks::HUD::showKillfeedOtherInfo, false},
-                {"showkillfeedmod", "Show zPAM Messages", Section::KillfeedFilters,
-                 Hooks::HUD::showKillfeedModMessages, true},
+                {"showhitmarkers", "Hitmarkers", Section::Main, Hooks::HUD::showHitmarkers, true},
+                {"showkilledby", "Killed-by Text", Section::Main, Hooks::HUD::showKilledByMessages, false},
+                {"showtimer", "Timer", Section::Main, Hooks::HUD::showTimer, false},
+                {"showplayersleft", "Players Left Alive", Section::Main, Hooks::HUD::showPlayersLeftAlive, true},
+                {"showhints", "Hints", Section::Main, Hooks::HUD::showHints, false},
+                {"showteammateicons", "Teammate Icons", Section::Main, Hooks::HUD::showTeammateIcons, false},
+                {"showchat", "Chat", Section::Main, Hooks::HUD::showChat, false},
+                {"showbombtimer", "Bomb Timer", Section::Main, Hooks::HUD::showBombTimer, false},
+                {"showmodtext", "zPAM Text", Section::Main, Hooks::HUD::showModText, true},
+                {"showkillfeedkills", "Kills", Section::KillfeedFilters, Hooks::HUD::showKillfeedKills, false},
+                {"showkillfeedbomb", "Bomb Plants", Section::KillfeedFilters, Hooks::HUD::showKillfeedBombEvents,
+                 false},
+                {"showkillfeedother", "Other Info", Section::KillfeedFilters, Hooks::HUD::showKillfeedOtherInfo,
+                 false},
+                {"showkillfeedmod", "zPAM Messages", Section::KillfeedFilters, Hooks::HUD::showKillfeedModMessages,
+                 true},
             };
         }
 

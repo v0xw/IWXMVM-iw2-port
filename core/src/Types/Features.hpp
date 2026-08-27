@@ -21,11 +21,7 @@ namespace IWXMVM::Types
         // implementation of them
         Features_CorePostProcess = 1 << 3,
 
-        // the game exposes fine-grained HUD element toggles (hitmarkers, killed-by text, timer,
-        // chat, killfeed filters, ...) in place of the combined "icons and text" switch
-        Features_GranularHudToggles = 1 << 4,
-
         // the game has no flashbang effect, so the shellshock toggle is labeled accordingly
-        Features_NoFlashbangs = 1 << 5,
+        Features_NoFlashbangs = 1 << 4,
     };
 }  // namespace IWXMVM::Types

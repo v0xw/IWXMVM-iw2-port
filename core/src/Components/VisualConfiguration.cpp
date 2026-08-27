@@ -34,23 +34,28 @@ namespace IWXMVM::Components
         "iwxmvm_ui_showscore",
         "iwxmvm_ui_showothertext",
         "iwxmvm_ui_showbloodoverlay",
-        "iwxmvm_ui_showhitmarkers",
-        "iwxmvm_ui_showkilledby",
-        "iwxmvm_ui_showmodtext",
-        "iwxmvm_ui_showtimer",
-        "iwxmvm_ui_showplayersleft",
-        "iwxmvm_ui_showhints",
-        "iwxmvm_ui_showteammateicons",
-        "iwxmvm_ui_showchat",
-        "iwxmvm_ui_showbombtimer",
-        "iwxmvm_ui_showkillfeedkills",
-        "iwxmvm_ui_showkillfeedbomb",
-        "iwxmvm_ui_showkillfeedother",
-        "iwxmvm_ui_showkillfeedmod",
         "ui_hud_obituaries",
         "g_teamcolor_allies",
         "g_teamcolor_axis"
     };
+
+    constexpr std::string_view HUD_TOGGLE_DVAR_PREFIX = "iwxmvm_ui_";
+
+    // game-specific HUD toggles are persisted as "iwxmvm_ui_<id>"; the descriptor list in the
+    // settings determines which ids exist
+    Types::HudToggle* FindHudToggle(std::vector<Types::HudToggle>& toggles, const std::string& dvar)
+    {
+        if (!dvar.starts_with(HUD_TOGGLE_DVAR_PREFIX))
+            return nullptr;
+
+        const auto id = std::string_view{dvar}.substr(HUD_TOGGLE_DVAR_PREFIX.size());
+        for (auto& toggle : toggles)
+        {
+            if (toggle.id == id)
+                return &toggle;
+        }
+        return nullptr;
+    }
 
     bool ProcessString(std::string& str)
     {
@@ -130,7 +135,7 @@ namespace IWXMVM::Components
         {
             dvar = GetNextToken(in);
 
-            if (validDvars.find(dvar) == validDvars.end())
+            if (validDvars.find(dvar) == validDvars.end() && FindHudToggle(visuals.hudToggles, dvar) == nullptr)
                 continue;
 
             strValue = GetNextToken(in);
@@ -236,32 +241,8 @@ namespace IWXMVM::Components
                 visuals.hudInfo.showCrosshair = value;
             else if (dvar == "iwxmvm_ui_showscore")
                 visuals.hudInfo.showScore = value;
-            else if (dvar == "iwxmvm_ui_showhitmarkers")
-                visuals.hudInfo.showHitmarkers = value;
-            else if (dvar == "iwxmvm_ui_showkilledby")
-                visuals.hudInfo.showKilledByMessages = value;
-            else if (dvar == "iwxmvm_ui_showmodtext")
-                visuals.hudInfo.showModText = value;
-            else if (dvar == "iwxmvm_ui_showtimer")
-                visuals.hudInfo.showTimer = value;
-            else if (dvar == "iwxmvm_ui_showplayersleft")
-                visuals.hudInfo.showPlayersLeftAlive = value;
-            else if (dvar == "iwxmvm_ui_showhints")
-                visuals.hudInfo.showHints = value;
-            else if (dvar == "iwxmvm_ui_showteammateicons")
-                visuals.hudInfo.showTeammateIcons = value;
-            else if (dvar == "iwxmvm_ui_showchat")
-                visuals.hudInfo.showChat = value;
-            else if (dvar == "iwxmvm_ui_showbombtimer")
-                visuals.hudInfo.showBombTimer = value;
-            else if (dvar == "iwxmvm_ui_showkillfeedkills")
-                visuals.hudInfo.showKillfeedKills = value;
-            else if (dvar == "iwxmvm_ui_showkillfeedbomb")
-                visuals.hudInfo.showKillfeedBombEvents = value;
-            else if (dvar == "iwxmvm_ui_showkillfeedother")
-                visuals.hudInfo.showKillfeedOtherInfo = value;
-            else if (dvar == "iwxmvm_ui_showkillfeedmod")
-                visuals.hudInfo.showKillfeedModMessages = value;
+            else if (auto* toggle = FindHudToggle(visuals.hudToggles, dvar))
+                toggle->value = value != 0;
             else if (dvar == "ui_hud_obituaries")
                 visuals.hudInfo.showKillfeed = value;
             else if (dvar == "g_teamcolor_allies")
@@ -337,19 +318,8 @@ namespace IWXMVM::Components
         out << "cg_drawshellshock " << settings.hudInfo.showShellshock << "\n";
         out << "ui_drawcrosshair " << settings.hudInfo.showCrosshair << "\n";
         out << "iwxmvm_ui_showscore " << settings.hudInfo.showScore << "\n";
-        out << "iwxmvm_ui_showhitmarkers " << settings.hudInfo.showHitmarkers << "\n";
-        out << "iwxmvm_ui_showkilledby " << settings.hudInfo.showKilledByMessages << "\n";
-        out << "iwxmvm_ui_showmodtext " << settings.hudInfo.showModText << "\n";
-        out << "iwxmvm_ui_showtimer " << settings.hudInfo.showTimer << "\n";
-        out << "iwxmvm_ui_showplayersleft " << settings.hudInfo.showPlayersLeftAlive << "\n";
-        out << "iwxmvm_ui_showhints " << settings.hudInfo.showHints << "\n";
-        out << "iwxmvm_ui_showteammateicons " << settings.hudInfo.showTeammateIcons << "\n";
-        out << "iwxmvm_ui_showchat " << settings.hudInfo.showChat << "\n";
-        out << "iwxmvm_ui_showbombtimer " << settings.hudInfo.showBombTimer << "\n";
-        out << "iwxmvm_ui_showkillfeedkills " << settings.hudInfo.showKillfeedKills << "\n";
-        out << "iwxmvm_ui_showkillfeedbomb " << settings.hudInfo.showKillfeedBombEvents << "\n";
-        out << "iwxmvm_ui_showkillfeedother " << settings.hudInfo.showKillfeedOtherInfo << "\n";
-        out << "iwxmvm_ui_showkillfeedmod " << settings.hudInfo.showKillfeedModMessages << "\n";
+        for (const auto& toggle : settings.hudToggles)
+            out << HUD_TOGGLE_DVAR_PREFIX << toggle.id << " " << toggle.value << "\n";
         out << "iwxmvm_ui_showothertext " << settings.hudInfo.showIconsAndText << "\n";
         out << "iwxmvm_ui_showbloodoverlay " << settings.hudInfo.showBloodOverlay << "\n";
         out << "ui_hud_obituaries " << settings.hudInfo.showKillfeed << "\n";

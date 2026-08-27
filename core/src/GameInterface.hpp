@@ -16,6 +16,7 @@
 #include "Types/Entity.hpp"
 #include "Types/PlaybackData.hpp"
 #include "Types/HudInfo.hpp"
+#include "Types/HudToggle.hpp"
 #include "Types/RenderingFlags.hpp"
 #include "Types/Features.hpp"
 
@@ -100,6 +101,18 @@ namespace IWXMVM
             return {};
         }
         virtual void SetSky(const std::string& materialName)
+        {
+        }
+
+        // Game-specific fine-grained HUD toggles, rendered generically by the visuals tab. A
+        // non-empty list replaces the combined "Show Icons and Text" switch there (the granular
+        // toggles supersede it). Values reflect the game's current state; changes come back
+        // through SetHudToggle, and each toggle is persisted in presets as "iwxmvm_ui_<id>".
+        virtual std::vector<Types::HudToggle> GetHudToggles()
+        {
+            return {};
+        }
+        virtual void SetHudToggle(std::string_view id, bool value)
         {
         }
 

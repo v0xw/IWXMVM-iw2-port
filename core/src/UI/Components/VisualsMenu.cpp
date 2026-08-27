@@ -34,7 +34,8 @@ namespace IWXMVM::UI
                 auto filmtweaks = Mod::GetGameInterface()->GetFilmtweaks();
                 auto hudInfo = Mod::GetGameInterface()->GetHudInfo();
 
-                visuals = {dof, sun.color, sun.direction, sun.brightness, filmtweaks, hudInfo};
+                visuals = {dof, sun.color, sun.direction, sun.brightness, filmtweaks, hudInfo,
+                           Mod::GetGameInterface()->GetHudToggles()};
                 recentPresets = {};
 
                 // We do this once to force r_dof_enable and r_dof_tweak
@@ -163,6 +164,19 @@ namespace IWXMVM::UI
         ImGui::Separator();
     }
 
+    bool DrawHudToggleRow(Types::HudToggle& toggle, float checkboxColumnPosition, bool isModDemo)
+    {
+        ImGui::BeginDisabled(toggle.requiresModDemo && !isModDemo);
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("%s", toggle.label.c_str());
+        ImGui::SameLine();
+        ImGui::SetCursorPosX(checkboxColumnPosition);
+        ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
+        const bool modified = ImGui::Checkbox(("##hudToggle_" + toggle.id).c_str(), &toggle.value);
+        ImGui::EndDisabled();
+        return modified;
+    }
+
     void VisualsMenu::RenderMiscSection()
     {
         auto checkboxColumnPosition = ImGui::GetWindowWidth() * 0.6f;
@@ -218,7 +232,7 @@ namespace IWXMVM::UI
             modified = ImGui::Checkbox("##showPlayerHUDCheckbox", &visuals.hudInfo.showPlayerHUD) || modified;
 
             const auto features = Mod::GetGameInterface()->GetSupportedFeatures();
-            const bool granularHudToggles = (features & Types::Features_GranularHudToggles) != 0;
+            const bool granularHudToggles = !visuals.hudToggles.empty();
 
             ImGui::AlignTextToFramePadding();
             ImGui::Text((features & Types::Features_NoFlashbangs) ? "Show Shellshock" : "Show Shellshock/Flashbang");
@@ -263,77 +277,13 @@ namespace IWXMVM::UI
                 // grey out options for elements only mod demos contain
                 const bool isModDemo = !Mod::GetGameInterface()->GetDemoModName().empty();
 
-                ImGui::BeginDisabled(!isModDemo);
-                ImGui::AlignTextToFramePadding();
-                ImGui::Text("Show Hitmarkers");
-                ImGui::SameLine();
-                ImGui::SetCursorPosX(checkboxColumnPosition);
-                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
-                modified = ImGui::Checkbox("##showHitmarkersCheckbox", &visuals.hudInfo.showHitmarkers) || modified;
-                ImGui::EndDisabled();
+                for (auto& toggle : visuals.hudToggles)
+                {
+                    if (toggle.section != Types::HudToggle::Section::Main)
+                        continue;
 
-                ImGui::AlignTextToFramePadding();
-                ImGui::Text("Show Killed-by Text");
-                ImGui::SameLine();
-                ImGui::SetCursorPosX(checkboxColumnPosition);
-                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
-                modified =
-                    ImGui::Checkbox("##showKilledByCheckbox", &visuals.hudInfo.showKilledByMessages) || modified;
-
-                ImGui::AlignTextToFramePadding();
-                ImGui::Text("Show Timer");
-                ImGui::SameLine();
-                ImGui::SetCursorPosX(checkboxColumnPosition);
-                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
-                modified = ImGui::Checkbox("##showTimerCheckbox", &visuals.hudInfo.showTimer) || modified;
-
-                ImGui::BeginDisabled(!isModDemo);
-                ImGui::AlignTextToFramePadding();
-                ImGui::Text("Show Players Left Alive");
-                ImGui::SameLine();
-                ImGui::SetCursorPosX(checkboxColumnPosition);
-                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
-                modified =
-                    ImGui::Checkbox("##showPlayersLeftCheckbox", &visuals.hudInfo.showPlayersLeftAlive) || modified;
-                ImGui::EndDisabled();
-
-                ImGui::AlignTextToFramePadding();
-                ImGui::Text("Show Hints");
-                ImGui::SameLine();
-                ImGui::SetCursorPosX(checkboxColumnPosition);
-                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
-                modified = ImGui::Checkbox("##showHintsCheckbox", &visuals.hudInfo.showHints) || modified;
-
-                ImGui::AlignTextToFramePadding();
-                ImGui::Text("Show Teammate Icons");
-                ImGui::SameLine();
-                ImGui::SetCursorPosX(checkboxColumnPosition);
-                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
-                modified =
-                    ImGui::Checkbox("##showTeammateIconsCheckbox", &visuals.hudInfo.showTeammateIcons) || modified;
-
-                ImGui::AlignTextToFramePadding();
-                ImGui::Text("Show Chat");
-                ImGui::SameLine();
-                ImGui::SetCursorPosX(checkboxColumnPosition);
-                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
-                modified = ImGui::Checkbox("##showChatCheckbox", &visuals.hudInfo.showChat) || modified;
-
-                ImGui::AlignTextToFramePadding();
-                ImGui::Text("Show Bomb Timer");
-                ImGui::SameLine();
-                ImGui::SetCursorPosX(checkboxColumnPosition);
-                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
-                modified = ImGui::Checkbox("##showBombTimerCheckbox", &visuals.hudInfo.showBombTimer) || modified;
-
-                ImGui::BeginDisabled(!isModDemo);
-                ImGui::AlignTextToFramePadding();
-                ImGui::Text("Show zPAM Text");
-                ImGui::SameLine();
-                ImGui::SetCursorPosX(checkboxColumnPosition);
-                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
-                modified = ImGui::Checkbox("##showModTextCheckbox", &visuals.hudInfo.showModText) || modified;
-                ImGui::EndDisabled();
+                    modified = DrawHudToggleRow(toggle, checkboxColumnPosition, isModDemo) || modified;
+                }
             }
 
             ImGui::Dummy(ImVec2(0.0f, 20.0f));
@@ -347,43 +297,16 @@ namespace IWXMVM::UI
 
             if (granularHudToggles && visuals.hudInfo.showKillfeed)
             {
+                const bool isModDemo = !Mod::GetGameInterface()->GetDemoModName().empty();
+
                 ImGui::Indent();
+                for (auto& toggle : visuals.hudToggles)
+                {
+                    if (toggle.section != Types::HudToggle::Section::KillfeedFilters)
+                        continue;
 
-                ImGui::AlignTextToFramePadding();
-                ImGui::Text("Show Kills");
-                ImGui::SameLine();
-                ImGui::SetCursorPosX(checkboxColumnPosition);
-                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
-                modified =
-                    ImGui::Checkbox("##showKillfeedKillsCheckbox", &visuals.hudInfo.showKillfeedKills) || modified;
-
-                ImGui::AlignTextToFramePadding();
-                ImGui::Text("Show Bomb Plants");
-                ImGui::SameLine();
-                ImGui::SetCursorPosX(checkboxColumnPosition);
-                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
-                modified = ImGui::Checkbox("##showKillfeedBombCheckbox", &visuals.hudInfo.showKillfeedBombEvents) ||
-                           modified;
-
-                ImGui::AlignTextToFramePadding();
-                ImGui::Text("Show Other Info");
-                ImGui::SameLine();
-                ImGui::SetCursorPosX(checkboxColumnPosition);
-                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
-                modified = ImGui::Checkbox("##showKillfeedOtherCheckbox", &visuals.hudInfo.showKillfeedOtherInfo) ||
-                           modified;
-
-                const bool isModDemoKillfeed = !Mod::GetGameInterface()->GetDemoModName().empty();
-                ImGui::BeginDisabled(!isModDemoKillfeed);
-                ImGui::AlignTextToFramePadding();
-                ImGui::Text("Show zPAM Messages");
-                ImGui::SameLine();
-                ImGui::SetCursorPosX(checkboxColumnPosition);
-                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
-                modified = ImGui::Checkbox("##showKillfeedModCheckbox", &visuals.hudInfo.showKillfeedModMessages) ||
-                           modified;
-                ImGui::EndDisabled();
-
+                    modified = DrawHudToggleRow(toggle, checkboxColumnPosition, isModDemo) || modified;
+                }
                 ImGui::Unindent();
             }
 
@@ -573,6 +496,10 @@ namespace IWXMVM::UI
             return;
 
         Mod::GetGameInterface()->SetHudInfo(visuals.hudInfo);
+
+        // applied after SetHudInfo so the game can resolve toggles against the shared HUD state
+        for (const auto& toggle : visuals.hudToggles)
+            Mod::GetGameInterface()->SetHudToggle(toggle.id, toggle.value);
     }
 
     void VisualsMenu::LoadPreset(Preset preset)

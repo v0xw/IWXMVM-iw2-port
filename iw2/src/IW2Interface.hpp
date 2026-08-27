@@ -68,7 +68,7 @@ namespace IWXMVM::IW2
             return static_cast<Types::Features>(
                 Types::Features_ChangeAnimations | Types::Features_TemporalBoneSmoothing |
                 Types::Features_SharedDepthStencil | Types::Features_CorePostProcess |
-                Types::Features_GranularHudToggles | Types::Features_NoFlashbangs);
+                Types::Features_NoFlashbangs);
         }
 
         // ----------------------------------------------------------------------------------------------------
@@ -445,19 +445,6 @@ namespace IWXMVM::IW2
             hudInfo.showCrosshair = Hooks::HUD::showCrosshair;
             hudInfo.showScore = Hooks::HUD::showScore;
             hudInfo.showIconsAndText = true;  // no IW2 toggle: unclassified hudelems always draw
-            hudInfo.showHitmarkers = Hooks::HUD::showHitmarkers;
-            hudInfo.showKilledByMessages = Hooks::HUD::showKilledByMessages;
-            hudInfo.showModText = Hooks::HUD::showModText;
-            hudInfo.showTimer = Hooks::HUD::showTimer;
-            hudInfo.showPlayersLeftAlive = Hooks::HUD::showPlayersLeftAlive;
-            hudInfo.showHints = Hooks::HUD::showHints;
-            hudInfo.showTeammateIcons = Hooks::HUD::showTeammateIcons;
-            hudInfo.showChat = Hooks::HUD::showChat;
-            hudInfo.showBombTimer = Hooks::HUD::showBombTimer;
-            hudInfo.showKillfeedKills = Hooks::HUD::showKillfeedKills;
-            hudInfo.showKillfeedBombEvents = Hooks::HUD::showKillfeedBombEvents;
-            hudInfo.showKillfeedOtherInfo = Hooks::HUD::showKillfeedOtherInfo;
-            hudInfo.showKillfeedModMessages = Hooks::HUD::showKillfeedModMessages;
             hudInfo.showBloodOverlay = Hooks::HUD::showBloodOverlay;
             hudInfo.showKillfeed = Hooks::HUD::showKillfeed;
             hudInfo.killfeedTeam1Color = Hooks::HUD::killfeedTeam1Color;
@@ -475,8 +462,6 @@ namespace IWXMVM::IW2
                 hudInfo.showPlayerHUD = false;
                 hudInfo.showCrosshair = false;
                 hudInfo.showKillfeed = false;
-                // drawn outside the cg_draw2D-gated pass, so it must be forced off explicitly
-                hudInfo.showTeammateIcons = false;
             }
 
             Hooks::HUD::showPlayerHUD = hudInfo.showPlayerHUD;
@@ -498,42 +483,90 @@ namespace IWXMVM::IW2
             Hooks::HUD::showBloodOverlay = hudInfo.showBloodOverlay;
             SetDvarBool("cg_drawGameMessages", hudInfo.showKillfeed);
 
-            Hooks::HUD::showHitmarkers = hudInfo.showHitmarkers;
             Hooks::HUD::showScore = hudInfo.showScore;
             Hooks::HUD::showShellshock = hudInfo.showShellshock;
-            Hooks::HUD::showKilledByMessages = hudInfo.showKilledByMessages;
-            Hooks::HUD::showModText = hudInfo.showModText;
-            Hooks::HUD::showTimer = hudInfo.showTimer;
-            Hooks::HUD::showPlayersLeftAlive = hudInfo.showPlayersLeftAlive;
-            Hooks::HUD::showHints = hudInfo.showHints;
-            Hooks::HUD::showTeammateIcons = hudInfo.showTeammateIcons;
-            if (hudInfo.showTeammateIcons)
-                Patches::GetGamePatches().CG_DrawPlayerSprites.Revert();
-            else
-                Patches::GetGamePatches().CG_DrawPlayerSprites.Apply();
-
-            Hooks::HUD::showChat = hudInfo.showChat;
-            if (hudInfo.showChat)
-                Patches::GetGamePatches().CG_DrawChatMessages.Revert();
-            else
-                Patches::GetGamePatches().CG_DrawChatMessages.Apply();
-
-            Hooks::HUD::showBombTimer = hudInfo.showBombTimer;
-
-            Hooks::HUD::showKillfeedKills = hudInfo.showKillfeedKills;
-            Hooks::HUD::showKillfeedBombEvents = hudInfo.showKillfeedBombEvents;
-            Hooks::HUD::showKillfeedOtherInfo = hudInfo.showKillfeedOtherInfo;
-            Hooks::HUD::showKillfeedModMessages = hudInfo.showKillfeedModMessages;
-            if (hudInfo.showKillfeedKills)
-                Patches::GetGamePatches().CG_AddObituaryMessage.Revert();
-            else
-                Patches::GetGamePatches().CG_AddObituaryMessage.Apply();
 
             // applied via the CG_GetTeamColor hook; the g_TeamColor_* dvars can't be used since
             // they are configstring-replicated and get reset to the server's values on every
             // gamestate parse (i.e. every rewind)
             Hooks::HUD::killfeedTeam1Color = hudInfo.killfeedTeam1Color;
             Hooks::HUD::killfeedTeam2Color = hudInfo.killfeedTeam2Color;
+        }
+
+        std::vector<Types::HudToggle> GetHudToggles() final
+        {
+            using Section = Types::HudToggle::Section;
+            // ids are the historical preset keys (persisted as "iwxmvm_ui_<id>"); toggles marked
+            // requiresModDemo control elements only mod (zPAM) demos contain
+            return {
+                {"showhitmarkers", "Show Hitmarkers", Section::Main, Hooks::HUD::showHitmarkers, true},
+                {"showkilledby", "Show Killed-by Text", Section::Main, Hooks::HUD::showKilledByMessages, false},
+                {"showtimer", "Show Timer", Section::Main, Hooks::HUD::showTimer, false},
+                {"showplayersleft", "Show Players Left Alive", Section::Main, Hooks::HUD::showPlayersLeftAlive, true},
+                {"showhints", "Show Hints", Section::Main, Hooks::HUD::showHints, false},
+                {"showteammateicons", "Show Teammate Icons", Section::Main, Hooks::HUD::showTeammateIcons, false},
+                {"showchat", "Show Chat", Section::Main, Hooks::HUD::showChat, false},
+                {"showbombtimer", "Show Bomb Timer", Section::Main, Hooks::HUD::showBombTimer, false},
+                {"showmodtext", "Show zPAM Text", Section::Main, Hooks::HUD::showModText, true},
+                {"showkillfeedkills", "Show Kills", Section::KillfeedFilters, Hooks::HUD::showKillfeedKills, false},
+                {"showkillfeedbomb", "Show Bomb Plants", Section::KillfeedFilters,
+                 Hooks::HUD::showKillfeedBombEvents, false},
+                {"showkillfeedother", "Show Other Info", Section::KillfeedFilters,
+                 Hooks::HUD::showKillfeedOtherInfo, false},
+                {"showkillfeedmod", "Show zPAM Messages", Section::KillfeedFilters,
+                 Hooks::HUD::showKillfeedModMessages, true},
+            };
+        }
+
+        void SetHudToggle(std::string_view id, bool value) final
+        {
+            if (id == "showhitmarkers")
+                Hooks::HUD::showHitmarkers = value;
+            else if (id == "showkilledby")
+                Hooks::HUD::showKilledByMessages = value;
+            else if (id == "showtimer")
+                Hooks::HUD::showTimer = value;
+            else if (id == "showplayersleft")
+                Hooks::HUD::showPlayersLeftAlive = value;
+            else if (id == "showhints")
+                Hooks::HUD::showHints = value;
+            else if (id == "showteammateicons")
+            {
+                // drawn outside the cg_draw2D-gated pass, so it must be forced off explicitly
+                // while 2D elements are hidden (SetHudInfo has run first and set show2DElements)
+                const bool show = value && Hooks::HUD::show2DElements;
+                Hooks::HUD::showTeammateIcons = show;
+                if (show)
+                    Patches::GetGamePatches().CG_DrawPlayerSprites.Revert();
+                else
+                    Patches::GetGamePatches().CG_DrawPlayerSprites.Apply();
+            }
+            else if (id == "showchat")
+            {
+                Hooks::HUD::showChat = value;
+                if (value)
+                    Patches::GetGamePatches().CG_DrawChatMessages.Revert();
+                else
+                    Patches::GetGamePatches().CG_DrawChatMessages.Apply();
+            }
+            else if (id == "showbombtimer")
+                Hooks::HUD::showBombTimer = value;
+            else if (id == "showmodtext")
+                Hooks::HUD::showModText = value;
+            else if (id == "showkillfeedkills")
+            {
+                Hooks::HUD::showKillfeedKills = value;
+                if (value)
+                    Patches::GetGamePatches().CG_AddObituaryMessage.Revert();
+                else
+                    Patches::GetGamePatches().CG_AddObituaryMessage.Apply();
+            }
+            else if (id == "showkillfeedbomb")
+                Hooks::HUD::showKillfeedBombEvents = value;
+            else if (id == "showkillfeedother")
+                Hooks::HUD::showKillfeedOtherInfo = value;
+            else if (id == "showkillfeedmod")
+                Hooks::HUD::showKillfeedModMessages = value;
         }
 
         std::vector<std::string> GetAvailableSkies() final

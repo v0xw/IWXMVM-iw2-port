@@ -2,6 +2,7 @@
 #include "Types/Filmtweaks.hpp"
 #include "Types/Dof.hpp"
 #include "Types/HudInfo.hpp"
+#include "Types/HudToggle.hpp"
 
 namespace IWXMVM::Components
 {
@@ -23,6 +24,9 @@ namespace IWXMVM::Components
 
             // MISC
             Types::HudInfo hudInfo;
+
+            // game-specific fine-grained HUD toggles (see GameInterface::GetHudToggles)
+            std::vector<Types::HudToggle> hudToggles;
         };
 
         static bool Load(std::filesystem::path file, Settings& visuals);

@@ -20,7 +20,7 @@ namespace IWXMVM::Components
 
     bool BoneCamera::IsTemporalSmoothingSupported()
     {
-        return Mod::GetGameInterface()->GetGame() == Types::Game::IW2;
+        return (Mod::GetGameInterface()->GetSupportedFeatures() & Types::Features_TemporalBoneSmoothing) != 0;
     }
 
     void BoneCamera::Initialize()

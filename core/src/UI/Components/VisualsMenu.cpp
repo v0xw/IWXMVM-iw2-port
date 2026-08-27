@@ -217,11 +217,11 @@ namespace IWXMVM::UI
             ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
             modified = ImGui::Checkbox("##showPlayerHUDCheckbox", &visuals.hudInfo.showPlayerHUD) || modified;
 
-            const bool isIW2 = Mod::GetGameInterface()->GetGame() == Types::Game::IW2;
+            const auto features = Mod::GetGameInterface()->GetSupportedFeatures();
+            const bool granularHudToggles = (features & Types::Features_GranularHudToggles) != 0;
 
             ImGui::AlignTextToFramePadding();
-            // CoD2 has no flashbangs
-            ImGui::Text(isIW2 ? "Show Shellshock" : "Show Shellshock/Flashbang");
+            ImGui::Text((features & Types::Features_NoFlashbangs) ? "Show Shellshock" : "Show Shellshock/Flashbang");
             ImGui::SameLine();
             ImGui::SetCursorPosX(checkboxColumnPosition);
             ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
@@ -241,7 +241,7 @@ namespace IWXMVM::UI
             ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
             modified = ImGui::Checkbox("##showScoreCheckbox", &visuals.hudInfo.showScore) || modified;
             
-            if (!isIW2)  // covered by the granular IW2 toggles below
+            if (!granularHudToggles)  // covered by the granular toggles below
             {
                 ImGui::AlignTextToFramePadding();
                 ImGui::Text("Show Icons and Text");
@@ -258,7 +258,7 @@ namespace IWXMVM::UI
             ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
             modified = ImGui::Checkbox("##showBloodOverlayCheckbox", &visuals.hudInfo.showBloodOverlay) || modified;
 
-            if (isIW2)
+            if (granularHudToggles)
             {
                 // grey out options for elements only mod demos contain
                 const bool isModDemo = !Mod::GetGameInterface()->GetDemoModName().empty();
@@ -345,7 +345,7 @@ namespace IWXMVM::UI
             ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
             modified = ImGui::Checkbox("##showKillfeedCheckbox", &visuals.hudInfo.showKillfeed) || modified;
 
-            if (isIW2 && visuals.hudInfo.showKillfeed)
+            if (granularHudToggles && visuals.hudInfo.showKillfeed)
             {
                 ImGui::Indent();
 

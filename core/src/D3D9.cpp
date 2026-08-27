@@ -98,9 +98,9 @@ namespace IWXMVM::D3D9
                   Width, Height, static_cast<int>(Format), static_cast<int>(MultiSample), gameWidth, gameHeight);
 
         bool intercept;
-        if (Mod::GetGameInterface()->GetGame() == Types::Game::IW2)
+        if (Mod::GetGameInterface()->GetSupportedFeatures() & Types::Features_SharedDepthStencil)
         {
-            // CoD2 creates the scene depth stencil first; later large ones (the RT-shared depth
+            // the scene depth stencil is created first; later large ones (the RT-shared depth
             // stencil when MSAA is on) and the 128x128 shadow cookies must not be intercepted
             const bool isLarge = Width >= 512 && Height >= 384;
             intercept = false;
@@ -198,7 +198,7 @@ namespace IWXMVM::D3D9
         HRESULT hr = SetRenderTarget(pDevice, RenderTargetIndex, pRenderTarget);
 
         if (FAILED(hr) || RenderTargetIndex != 0 || !pRenderTarget || !intzSurface ||
-            Mod::GetGameInterface()->GetGame() != Types::Game::IW2)
+            !(Mod::GetGameInterface()->GetSupportedFeatures() & Types::Features_SharedDepthStencil))
         {
             return hr;
         }
@@ -428,10 +428,10 @@ namespace IWXMVM::D3D9
 
     HRESULT __stdcall SetDepthStencilSurface_Hook(IDirect3DDevice9* pDevice, IDirect3DSurface9* pNewZStencil)
     {
-        // IW2: if the game binds the scene depth stencil while an offscreen render target is
+        // if the game binds the scene depth stencil while an offscreen render target is
         // active, give it the decoy instead (see SetRenderTarget_Hook)
         if (pNewZStencil && pNewZStencil == intzSurface &&
-            Mod::GetGameInterface()->GetGame() == Types::Game::IW2)
+            (Mod::GetGameInterface()->GetSupportedFeatures() & Types::Features_SharedDepthStencil))
         {
             IDirect3DSurface9* currentRenderTarget = nullptr;
             if (SUCCEEDED(pDevice->GetRenderTarget(0, &currentRenderTarget)) && currentRenderTarget)

@@ -258,9 +258,10 @@ namespace IWXMVM::GFX
 
     void GraphicsManager::CreatePostProcessResources()
     {
-        // The DOF and filmtweaks post processes are CoD2-only: the other games have engine
-        // versions, and the DOF shaders hardcode CoD2's infinite projection depth linearization
-        if (Mod::GetGameInterface()->GetGame() != Types::Game::IW2)
+        // Games with engine DOF/filmtweaks don't opt into the core post-process. Note the DOF
+        // shaders hardcode CoD2's infinite projection depth linearization; another game opting in
+        // would need that parameterized
+        if (!(Mod::GetGameInterface()->GetSupportedFeatures() & Types::Features_CorePostProcess))
         {
             return;
         }
@@ -363,7 +364,7 @@ namespace IWXMVM::GFX
         // z scale of CoD2's InfinitePerspectiveMatrix
         constexpr float PROJECTION_DEPTH_SCALE = 0.99950027f;
 
-        if (Mod::GetGameInterface()->GetGame() != Types::Game::IW2)
+        if (!(Mod::GetGameInterface()->GetSupportedFeatures() & Types::Features_CorePostProcess))
         {
             return;
         }
@@ -544,7 +545,7 @@ namespace IWXMVM::GFX
 
     void GraphicsManager::ApplyFilmtweaks()
     {
-        if (Mod::GetGameInterface()->GetGame() != Types::Game::IW2)
+        if (!(Mod::GetGameInterface()->GetSupportedFeatures() & Types::Features_CorePostProcess))
         {
             return;
         }

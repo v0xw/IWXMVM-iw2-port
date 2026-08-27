@@ -65,7 +65,10 @@ namespace IWXMVM::IW2
 
         Types::Features GetSupportedFeatures() final
         {
-            return Types::Features_ChangeAnimations;
+            return static_cast<Types::Features>(
+                Types::Features_ChangeAnimations | Types::Features_TemporalBoneSmoothing |
+                Types::Features_SharedDepthStencil | Types::Features_CorePostProcess |
+                Types::Features_GranularHudToggles | Types::Features_NoFlashbangs);
         }
 
         // ----------------------------------------------------------------------------------------------------

@@ -171,6 +171,36 @@ namespace IWXMVM::UI
 
         bool modified = false;
 
+        static const auto availableSkies = Mod::GetGameInterface()->GetAvailableSkies();
+        if (!availableSkies.empty())
+        {
+            constexpr auto ORIGINAL_SKY_LABEL = "Original";
+
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Sky");
+            ImGui::SameLine();
+            ImGui::SetCursorPosX(checkboxColumnPosition);
+            ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.4f - ImGui::GetStyle().WindowPadding.x);
+            if (ImGui::BeginCombo("##skyCombo", selectedSky.empty() ? ORIGINAL_SKY_LABEL : selectedSky.c_str()))
+            {
+                if (ImGui::Selectable(ORIGINAL_SKY_LABEL, selectedSky.empty()))
+                {
+                    selectedSky.clear();
+                    Mod::GetGameInterface()->SetSky(selectedSky);
+                }
+
+                for (const auto& sky : availableSkies)
+                {
+                    if (ImGui::Selectable(sky.c_str(), selectedSky == sky))
+                    {
+                        selectedSky = sky;
+                        Mod::GetGameInterface()->SetSky(selectedSky);
+                    }
+                }
+                ImGui::EndCombo();
+            }
+        }
+
         ImGui::AlignTextToFramePadding();
         ImGui::Text("Show 2D Elements");
         ImGui::SameLine();

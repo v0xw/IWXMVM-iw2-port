@@ -38,6 +38,7 @@ namespace IWXMVM::UI
 
         Components::VisualConfiguration::Settings visuals;
         Components::VisualConfiguration::Settings defaultVisuals;
+        std::string selectedSky;  // empty = the map's own sky
         bool visualsInitialized = false;
         Preset defaultPreset;
         Preset currentPreset;

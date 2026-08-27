@@ -93,6 +93,16 @@ namespace IWXMVM
         virtual void SetFilmtweaks(Types::Filmtweaks) = 0;
         virtual void SetHudInfo(Types::HudInfo) = 0;
 
+        // Sky override: names of alternative skies the current game can swap in on the fly.
+        // An empty list hides the feature in the UI; an empty name restores the map's own sky.
+        virtual std::vector<std::string> GetAvailableSkies()
+        {
+            return {};
+        }
+        virtual void SetSky(const std::string& materialName)
+        {
+        }
+
         // Required for BoneCamera
         virtual std::vector<Types::Entity> GetEntities() = 0;
         virtual Types::BoneData GetBoneData(int32_t entityId, const std::string& name) = 0;

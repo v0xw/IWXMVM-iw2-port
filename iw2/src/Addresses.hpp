@@ -247,6 +247,21 @@ namespace IWXMVM::IW2::Addresses
         constexpr uint32_t R_AddCmdSetViewport = 0x00021FF0;    // void __cdecl(int x, int y, int w, int h); command id 13, 20 bytes
         constexpr uint32_t R_AddCmdClearScreen = 0x00022610;    // char __cdecl(int clearFlags, const float* rgba, float depth, char stencil); flags: 1 color, 2 depth, 4 stencil
         constexpr uint32_t RB_RenderCommandTable = 0x00190518;  // void(__cdecl*)(uint8_t** cmd)[40]; backend dispatch table, indexed by command id
+
+        // Material* __cdecl(const char* name, int unused, int usage); returns the existing material or loads it
+        // (usage 9 = what the world loader passes for BSP surface materials); an unknown name yields a renamed
+        // duplicate of '$default' plus a console warning, never a failure
+        constexpr uint32_t Material_RegisterHandle = 0x000174A0;
+
+        // GfxWorld* list head (worlds link through +0x30); null while no map is loaded. world+0x20 holds the
+        // sky cubemap GfxImage* and world+0x24 its sampler state byte, read back by the backend's 'sampler.sky'
+        // code source. The *visible* sky surfaces however sample the sky material's own colorMap texturedef, so
+        // swapping the sky patches that texdef (and these world fields, for whatever consults them)
+        constexpr uint32_t rgp_world = 0x001D1B9C;
+
+        // Material*[1024] open-addressing hash table all registered materials live in (Material_Register
+        // probes it); scanned to find the current map's sky material by its colorMap image
+        constexpr uint32_t materialHashTable = 0x001D4D28;
     }  // namespace GfxRVA
 
     inline HMODULE GetGfxModule()

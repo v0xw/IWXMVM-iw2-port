@@ -12,6 +12,7 @@
 #include "Hooks/HUD.hpp"
 #include "Hooks/Kills.hpp"
 #include "Hooks/Playback.hpp"
+#include "Hooks/Sky.hpp"
 #include "DemoParser.hpp"
 #include "Events.hpp"
 #include "Components/CameraManager.hpp"
@@ -530,6 +531,29 @@ namespace IWXMVM::IW2
             // gamestate parse (i.e. every rewind)
             Hooks::HUD::killfeedTeam1Color = hudInfo.killfeedTeam1Color;
             Hooks::HUD::killfeedTeam2Color = hudInfo.killfeedTeam2Color;
+        }
+
+        std::vector<std::string> GetAvailableSkies() final
+        {
+            // every sky material shipped in the stock main/iw_*.iwd files (SP maps included -
+            // their skies load fine in MP demos and just mean more variety)
+            return {
+                "sky_88ridge",        "sky_beltot",           "sky_bergstein",       "sky_breakout",
+                "sky_carchase",       "sky_cityhall",         "sky_crossroads",      "sky_dawnville2",
+                "sky_decoy",          "sky_decoytown",        "sky_decoytrenches",   "sky_downtown_assault",
+                "sky_downtown_sniper", "sky_duhoc",           "sky_duhoc_assault",   "sky_duhoc_defend",
+                "sky_elalamein",      "sky_eldaba",           "sky_gully",           "sky_gully_assault",
+                "sky_hill400",        "sky_hill400_artillery", "sky_hill400_assault", "sky_hill400_defend",
+                "sky_libya",          "sky_libyatown",        "sky_matmata",         "sky_medicdriver",
+                "sky_moscow",         "sky_newvillers",       "sky_rainvillers",     "sky_rhinecrossing",
+                "sky_silotown",       "sky_silotown_assault", "sky_silotown_defense", "sky_tankhunt",
+                "sky_toujane",        "sky_toujane_ride",     "sky_trainyard",
+            };
+        }
+
+        void SetSky(const std::string& materialName) final
+        {
+            Hooks::Sky::SetOverride(materialName);
         }
 
         // ----------------------------------------------------------------------------------------------------

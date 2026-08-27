@@ -213,6 +213,45 @@ namespace IWXMVM::IW2::Structures
     static_assert(sizeof(centity_t) == 548);
     static_assert(offsetof(centity_t, currentValid) == 0x1E0);
 
+    // Renderer (gfx_d3d_mp_x86_s.dll) structs; only the fields the sky override needs are mapped.
+    // Offsets verified against the DLL's world-load sky setup and the 'sampler.sky' backend reader.
+    struct GfxImage
+    {
+        int mapType;  // 5 = cubemap
+        uint8_t pad[0x20 - 0x4];
+        void* texture;          // 0x20: IDirect3DBaseTexture9*
+        uint8_t samplerState;   // 0x24
+    };
+    static_assert(offsetof(GfxImage, texture) == 0x20);
+
+    struct MaterialTextureDef
+    {
+        const char* name;      // e.g. "colorMap"
+        uint8_t samplerState;  // 0x04
+        uint8_t semantic;      // 0x05
+        uint8_t pad[2];
+        GfxImage* image;  // 0x08
+    };
+    static_assert(sizeof(MaterialTextureDef) == 12);
+
+    struct Material
+    {
+        const char* name;
+        uint8_t pad[0x34 - 0x4];
+        uint16_t textureCount;  // 0x34
+        uint8_t pad2[0x3C - 0x36];
+        MaterialTextureDef* textureTable;  // 0x3C
+    };
+    static_assert(offsetof(Material, textureTable) == 0x3C);
+
+    struct GfxWorld
+    {
+        uint8_t pad[0x20];
+        GfxImage* skyImage;      // 0x20: the sky cubemap 'sampler.sky' reads every frame
+        uint8_t skySamplerState;  // 0x24
+    };
+    static_assert(offsetof(GfxWorld, skyImage) == 0x20);
+
     struct clientInfo_t
     {
         int infoValid;

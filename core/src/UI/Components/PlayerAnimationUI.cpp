@@ -9,6 +9,57 @@
 
 namespace IWXMVM::UI
 {
+    namespace
+    {
+        // Imported animation packs are registered under a game prefix (e.g. an anim converted from
+        // CoD4 is named "iwx_iw3_death_..."); anims without a pack prefix belong to the running game
+        struct AnimPack
+        {
+            std::string_view prefix;
+            const char* label;
+        };
+        constexpr AnimPack ANIM_PACKS[] = {
+            {"iwx_iw3_", "CoD4"},
+            {"iwx_iw4_", "MW2"},
+            {"iwx_t4_", "WaW"},
+        };
+        constexpr std::int32_t NATIVE_PACK = -1;
+
+        std::int32_t GetAnimPack(std::string_view animName)
+        {
+            for (std::int32_t i = 0; i < std::ssize(ANIM_PACKS); ++i)
+            {
+                if (animName.starts_with(ANIM_PACKS[i].prefix))
+                    return i;
+            }
+            return NATIVE_PACK;
+        }
+
+        const char* GetPackLabel(std::int32_t pack)
+        {
+            if (pack != NATIVE_PACK)
+                return ANIM_PACKS[pack].label;
+
+            switch (Mod::GetGameInterface()->GetGame())
+            {
+                case Types::Game::IW2:
+                    return "CoD2";
+                case Types::Game::IW3:
+                    return "CoD4";
+                case Types::Game::IW5:
+                    return "MW3";
+                default:
+                    return "Native";
+            }
+        }
+
+        std::string_view GetAnimDisplayName(std::string_view animName, std::int32_t pack)
+        {
+            // the remainder of the game-memory string stays null-terminated after stripping
+            return pack == NATIVE_PACK ? animName : animName.substr(ANIM_PACKS[pack].prefix.size());
+        }
+    }  // namespace
+
     bool DrawHeaderAndResetButton(const char* label)
     {
         ImGui::AlignTextToFramePadding();
@@ -49,11 +100,37 @@ namespace IWXMVM::UI
             }
         
             const auto& anims = Components::PlayerAnimation::GetAnimations();
+
+            // group by source game so imported packs don't turn this into one endless list
+            static std::int32_t selectedPack = NATIVE_PACK;
+            bool packPresent[1 + std::ssize(ANIM_PACKS)] = {};
+            for (const auto& [animName, index] : anims)
+                packPresent[1 + GetAnimPack(animName)] = true;
+
+            if (!packPresent[1 + selectedPack])
+                selectedPack = NATIVE_PACK;
+
+            ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.4f);
+            if (ImGui::BeginCombo("##animPackCombo", GetPackLabel(selectedPack)))
+            {
+                for (std::int32_t pack = NATIVE_PACK; pack < std::ssize(ANIM_PACKS); ++pack)
+                {
+                    if (packPresent[1 + pack] && ImGui::Selectable(GetPackLabel(pack), selectedPack == pack))
+                        selectedPack = pack;
+                }
+                ImGui::EndCombo();
+            }
+            ImGui::Dummy(ImVec2(0.0f, 5.0f));
+
             for (std::int32_t i = 0; i < std::ssize(anims); ++i)
             {
                 assert(anims[i].first.length() > 0 && *(anims[i].first.data() + anims[i].first.length()) == '\0');
 
-                if (ImGui::Selectable(anims[i].first.data(), selected == i))
+                const auto pack = GetAnimPack(anims[i].first);
+                if (pack != selectedPack)
+                    continue;
+
+                if (ImGui::Selectable(GetAnimDisplayName(anims[i].first, pack).data(), selected == i))
                     Components::PlayerAnimation::SetSelectedAnimIndex(selected = i);
             }
 

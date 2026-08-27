@@ -47,7 +47,6 @@ namespace IWXMVM::Components
         "iwxmvm_ui_showkillfeedbomb",
         "iwxmvm_ui_showkillfeedother",
         "iwxmvm_ui_showkillfeedmod",
-        "iwxmvm_r_forcehighestlod",
         "ui_hud_obituaries",
         "g_teamcolor_allies",
         "g_teamcolor_axis"
@@ -265,8 +264,6 @@ namespace IWXMVM::Components
                 visuals.hudInfo.showKillfeedModMessages = value;
             else if (dvar == "ui_hud_obituaries")
                 visuals.hudInfo.showKillfeed = value;
-            else if (dvar == "iwxmvm_r_forcehighestlod")
-                visuals.forceHighestLod = value;
             else if (dvar == "g_teamcolor_allies")
             {
                 std::string sg, sb;

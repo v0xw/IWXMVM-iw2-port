@@ -35,7 +35,6 @@ namespace IWXMVM::UI
                 auto hudInfo = Mod::GetGameInterface()->GetHudInfo();
 
                 visuals = {dof, sun.color, sun.direction, sun.brightness, filmtweaks, hudInfo};
-                visuals.forceHighestLod = Mod::GetGameInterface()->GetForceHighestLod();
                 recentPresets = {};
 
                 // We do this once to force r_dof_enable and r_dof_tweak
@@ -169,18 +168,6 @@ namespace IWXMVM::UI
         auto checkboxColumnPosition = ImGui::GetWindowWidth() * 0.6f;
 
         DrawSectionHeader(ICON_FA_BURGER "  Misc");
-
-        if (Mod::GetGameInterface()->GetSupportedFeatures() & Types::Features_ForceHighestLod)
-        {
-            // the engine picks model LODs by distance to the POV player, not the free camera,
-            // so distant players render low-poly; this forces the highest LOD on every model
-            ImGui::AlignTextToFramePadding();
-            ImGui::Text("Force High Detail Models");
-            ImGui::SameLine();
-            ImGui::SetCursorPosX(checkboxColumnPosition);
-            ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
-            ImGui::Checkbox("##forceHighestLodCheckbox", &visuals.forceHighestLod);
-        }
 
         bool modified = false;
 
@@ -391,9 +378,6 @@ namespace IWXMVM::UI
 
         ImGui::Separator();
 
-        // The engine resets cheat-protected dvars on demo load, so reapply the forced LOD every frame
-        UpdateForceLod();
-
         // Since the hud occasionally re-appears more or less randomly,
         // we update the hud settings every frame, regardless of whether they were modified
         UpdateHudInfo();
@@ -559,11 +543,6 @@ namespace IWXMVM::UI
             return;
 
         Mod::GetGameInterface()->SetHudInfo(visuals.hudInfo);
-    }
-
-    void VisualsMenu::UpdateForceLod()
-    {
-        Mod::GetGameInterface()->SetForceHighestLod(visuals.forceHighestLod);
     }
 
     void VisualsMenu::LoadPreset(Preset preset)

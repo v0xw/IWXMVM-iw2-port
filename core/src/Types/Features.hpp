@@ -7,6 +7,5 @@ namespace IWXMVM::Types
         Features_None = 0,
 
         Features_ChangeAnimations = 1 << 0,
-        Features_ForceHighestLod = 1 << 1,
     };
 }  // namespace IWXMVM::Types

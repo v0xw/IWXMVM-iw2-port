@@ -6,6 +6,7 @@
 #include "Hooks/HUD.hpp"
 #include "Hooks/Kills.hpp"
 #include "Hooks/Models.hpp"
+#include "Hooks/PlayerAnimation.hpp"
 #include "Hooks/Diagnostics.hpp"
 
 namespace IWXMVM::IW2::Hooks
@@ -18,5 +19,6 @@ namespace IWXMVM::IW2::Hooks
         Hooks::HUD::Install();
         Hooks::Kills::Install();
         Hooks::Models::Install();
+        Hooks::PlayerAnimation::Install();
     }
 }  // namespace IWXMVM::IW2::Hooks

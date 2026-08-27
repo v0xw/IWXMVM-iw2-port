@@ -192,13 +192,14 @@ namespace IWXMVM::IW2::Structures
         int events[4];     // 0xA8
         int eventParms[4];  // 0xB8
         int weapon;        // 0xC8
-        int weaponModel;   // 0xCC
-        int legsAnim;      // 0xD0
-        int torsoAnim;     // 0xD4
-        uint8_t pad[240 - 0xD8];
+        int legsAnim;      // 0xCC
+        int torsoAnim;     // 0xD0
+        uint8_t pad[240 - 0xD4];
     };
     static_assert(sizeof(entityState_t) == 240);
     static_assert(offsetof(entityState_t, clientNum) == 0x90);
+    // BG_PlayerAnimation (exe 0x4FB150) reads legsAnim at +204 and torsoAnim at +208
+    static_assert(offsetof(entityState_t, legsAnim) == 0xCC);
 
     struct centity_t
     {
@@ -212,6 +213,35 @@ namespace IWXMVM::IW2::Structures
     };
     static_assert(sizeof(centity_t) == 548);
     static_assert(offsetof(centity_t, currentValid) == 0x1E0);
+
+    // bg animation script data; lives at the start of the client bgs_t (Addresses::cg_bgs).
+    // Layout from CoD2x cod2_player.h, verified against BG_PlayerAnimation (exe 0x4FB150),
+    // which strips the toggle bit with `& ~0x200` before indexing the animation table
+    constexpr uint32_t ANIM_TOGGLEBIT = 0x200;
+    constexpr int MAX_ANIMATIONS = 512;
+
+    struct animation_t
+    {
+        char name[64];
+        int initialLerp;
+        float moveSpeed;
+        int duration;
+        int nameHash;
+        int flags;
+        int pad;
+        int64_t movetype;
+        int noteType;
+        int pad2;
+    };
+    static_assert(sizeof(animation_t) == 0x68);
+
+    // Only the prefix: the full animScriptData_t is 0xB4BC8 bytes.
+    struct animScriptData_t
+    {
+        animation_t animations[MAX_ANIMATIONS];
+        int numAnimations;
+    };
+    static_assert(offsetof(animScriptData_t, numAnimations) == 0xD000);
 
     // Renderer (gfx_d3d_mp_x86_s.dll) structs; only the fields the sky override needs are mapped.
     // Offsets verified against the DLL's world-load sky setup and the 'sampler.sky' backend reader.
@@ -304,6 +334,11 @@ namespace IWXMVM::IW2::Structures
     inline T* At(uintptr_t address)
     {
         return reinterpret_cast<T*>(address);
+    }
+
+    inline animScriptData_t* GetAnimScriptData()
+    {
+        return At<animScriptData_t>(Addresses::cg_bgs);
     }
 
     inline connstate_t GetConnectionState()

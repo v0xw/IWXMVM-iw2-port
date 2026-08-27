@@ -70,6 +70,7 @@ namespace IWXMVM::IW2::Addresses
 
     constexpr uintptr_t CG_CalcViewValues = 0x004CF900;  // void __cdecl()
     constexpr uintptr_t CG_CalcFov = 0x004CF2E0;
+    constexpr uintptr_t CG_ProcessEntity = 0x004CDF20;  // centity_t* in EAX; dispatches on nextState.eType
     constexpr uintptr_t AnglesToAxis = 0x0042A6F0;  // axis in EAX, angles in EDX
     constexpr uintptr_t CG_OffsetThirdPersonView = 0x004CE890;
     constexpr uintptr_t CG_DrawActiveFrame2 = 0x004CFE10;

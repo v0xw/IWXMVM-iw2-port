@@ -65,7 +65,7 @@ namespace IWXMVM::IW2
 
         Types::Features GetSupportedFeatures() final
         {
-            return Types::Features_None;
+            return Types::Features_ChangeAnimations;
         }
 
         // ----------------------------------------------------------------------------------------------------

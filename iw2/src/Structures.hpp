@@ -145,6 +145,16 @@ namespace IWXMVM::IW2::Structures
         ET_TURRET = 9,
     };
 
+    enum trType_t : int
+    {
+        TR_STATIONARY = 0,
+        TR_INTERPOLATE = 1,
+        TR_LINEAR = 2,
+        TR_LINEAR_STOP = 3,
+        TR_SINE = 4,
+        TR_GRAVITY = 5,
+    };
+
     struct trajectory_t
     {
         int trType;

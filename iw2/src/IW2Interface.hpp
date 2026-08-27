@@ -572,6 +572,58 @@ namespace IWXMVM::IW2
             return entities;
         }
 
+        // The entity pose the game renders bone-less models at, in the same axis convention that
+        // CG_DObjGetWorldTagMatrix fills (rows forward / left / up, i.e. Q3 AnglesToAxis)
+        static Types::BoneData BoneDataFromEntityPose(int32_t entityId)
+        {
+            const auto& entity = Structures::GetEntities()[entityId];
+
+            auto angles = glm::make_vec3(entity.lerpAngles);
+
+            // A tumbling projectile's model angles are useless as a camera mount - the camera would
+            // spin along with it. Aim along the flight path instead (with level roll), so a camera
+            // stuck to a grenade glides behind its arc while the spin stays visible in frame.
+            if (entity.nextState.eType == Structures::ET_MISSILE)
+            {
+                const auto& tr = entity.nextState.pos;
+                glm::vec3 velocity(0.0f);
+                if (tr.trType == Structures::TR_LINEAR || tr.trType == Structures::TR_GRAVITY)
+                {
+                    velocity = glm::make_vec3(tr.trDelta);
+                }
+                if (tr.trType == Structures::TR_GRAVITY)
+                {
+                    constexpr float DEFAULT_GRAVITY = 800.0f;  // BG_EvaluateTrajectory's constant
+                    const auto time = *reinterpret_cast<const int32_t*>(Addresses::cl_serverTime);
+                    velocity.z -= DEFAULT_GRAVITY * static_cast<float>(time - tr.trTime) * 0.001f;
+                }
+
+                if (glm::dot(velocity, velocity) > 1.0f)
+                {
+                    const auto direction = glm::normalize(velocity);
+                    angles = glm::vec3(glm::degrees(-std::asin(direction.z)),
+                                       glm::degrees(std::atan2(direction.y, direction.x)), 0.0f);
+                }
+            }
+
+            const auto pitch = glm::radians(angles[0]);
+            const auto yaw = glm::radians(angles[1]);
+            const auto roll = glm::radians(angles[2]);
+            const auto sp = std::sin(pitch), cp = std::cos(pitch);
+            const auto sy = std::sin(yaw), cy = std::cos(yaw);
+            const auto sr = std::sin(roll), cr = std::cos(roll);
+
+            const glm::vec3 forward(cp * cy, cp * sy, -sp);
+            const glm::vec3 left(sr * sp * cy - cr * sy, sr * sp * sy + cr * cy, sr * cp);
+            const glm::vec3 up(cr * sp * cy + sr * sy, cr * sp * sy - sr * cy, cr * cp);
+
+            Types::BoneData boneData;
+            boneData.id = 0;
+            boneData.position = glm::make_vec3(entity.lerpOrigin);
+            boneData.rotation = glm::mat3(forward, left, up);
+            return boneData;
+        }
+
         Types::BoneData GetBoneData(int32_t entityId, const std::string& name) final
         {
             if (entityId < 0 || entityId >= static_cast<int32_t>(Addresses::cg_entities_count) ||
@@ -579,7 +631,6 @@ namespace IWXMVM::IW2
             {
                 return Types::BoneData{.id = -1};
             }
-
 
             // While rewinding, the demo replays without the render path running, so entity states
             // advance while the DObj animation state goes stale; evaluating bones on that mismatch
@@ -614,14 +665,17 @@ namespace IWXMVM::IW2
             }
 
             const auto dobj = Functions::Com_GetClientDObj(entityId);
-            if (dobj == nullptr)
+            const auto boneIndex = dobj != nullptr ? Functions::DObjGetBoneIndex(dobj, tagName) : -1;
+            if (dobj == nullptr || boneIndex < 0)
             {
-                return Types::BoneData{.id = -1};
-            }
+                // CoD2 projectile and pickup xmodels expose no named bones, so the DObj tag lookup
+                // can never succeed on them. The game renders these entities rigidly at lerpOrigin /
+                // lerpAngles, so serve tag_origin straight from that pose (grenade cam etc.)
+                if (name == "tag_origin")
+                {
+                    return BoneDataFromEntityPose(entityId);
+                }
 
-            const auto boneIndex = Functions::DObjGetBoneIndex(dobj, tagName);
-            if (boneIndex < 0)
-            {
                 return Types::BoneData{.id = -1};
             }
 

@@ -110,17 +110,22 @@ namespace IWXMVM::UI
             if (!packPresent[1 + selectedPack])
                 selectedPack = NATIVE_PACK;
 
-            ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.4f);
-            if (ImGui::BeginCombo("##animPackCombo", GetPackLabel(selectedPack)))
+            // only offer the game dropdown when there is actually more than one source game -
+            // without imported packs (and on games that have none) the window stays as it was
+            if (std::count(std::begin(packPresent), std::end(packPresent), true) > 1)
             {
-                for (std::int32_t pack = NATIVE_PACK; pack < std::ssize(ANIM_PACKS); ++pack)
+                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.4f);
+                if (ImGui::BeginCombo("##animPackCombo", GetPackLabel(selectedPack)))
                 {
-                    if (packPresent[1 + pack] && ImGui::Selectable(GetPackLabel(pack), selectedPack == pack))
-                        selectedPack = pack;
+                    for (std::int32_t pack = NATIVE_PACK; pack < std::ssize(ANIM_PACKS); ++pack)
+                    {
+                        if (packPresent[1 + pack] && ImGui::Selectable(GetPackLabel(pack), selectedPack == pack))
+                            selectedPack = pack;
+                    }
+                    ImGui::EndCombo();
                 }
-                ImGui::EndCombo();
+                ImGui::Dummy(ImVec2(0.0f, 5.0f));
             }
-            ImGui::Dummy(ImVec2(0.0f, 5.0f));
 
             for (std::int32_t i = 0; i < std::ssize(anims); ++i)
             {

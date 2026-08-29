@@ -118,11 +118,22 @@ namespace IWXMVM
         }
         // enabled=false forces fog off. enabled=true with an empty preset shows the demo's own fog
         // (a game may substitute the current map's stock fog when the demo carries none); a
-        // non-empty preset applies that preset's fog instead, and may carry the preset's
-        // atmosphere (its ambient particle style) along. particles toggles the ambient-weather
-        // particles (dust, snow, fog banks) independently of the fog, whether the demo carries
-        // them itself or the game restores them.
-        virtual void SetFog(bool enabled, const std::string& presetName, bool particles)
+        // non-empty preset applies that preset's fog instead.
+        virtual void SetFog(bool enabled, const std::string& presetName)
+        {
+        }
+
+        // Ambient-weather particles (dust, snow, fog banks), independent of the fog. Names of
+        // the particle-style presets the game can apply; an empty list hides the particle
+        // controls in the UI.
+        virtual std::vector<std::string> GetAvailableParticlePresets()
+        {
+            return {};
+        }
+        // enabled toggles the particles, whether the demo carries them itself or the game
+        // restores them. An empty preset shows the current map's own particle style; a non-empty
+        // preset swaps in that preset's style.
+        virtual void SetAmbientParticles(bool enabled, const std::string& presetName)
         {
         }
 

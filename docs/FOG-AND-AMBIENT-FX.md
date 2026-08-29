@@ -2,7 +2,8 @@
 
 State of the fog feature as of 2026-08-29, including the reversing facts it is built on and what
 is still open. Implementation: `iw2/src/Hooks/Fog.cpp`, UI in `core/src/UI/Components/VisualsMenu.cpp`,
-game API in `core/src/GameInterface.hpp` (`GetAvailableFogPresets` / `HasDemoFog` / `SetFog`).
+game API in `core/src/GameInterface.hpp` (`GetAvailableFogPresets` / `HasDemoFog` / `SetFog` /
+`GetAvailableParticlePresets` / `SetAmbientParticles`).
 
 ## What vanilla "fog" actually is
 
@@ -18,8 +19,10 @@ suppressed by comp configs (zPAM comp rules default all `scr_allow_ambient_*` dv
 
 ## What the tool does
 
-The Visuals tab gets a **Fog** checkbox, a **From Map** preset combo (stock-map fog values), and
-an independent **Particles** checkbox for the ambient-weather particles. Behavior matrix:
+The Visuals tab gets a **Fog** checkbox and an independent **Particles** checkbox, each with its
+own **From Map** preset combo — stock-map fog values on one, stock-map particle styles on the
+other (the particle list has one extra entry: `mp_decoy` has night dust but sets no fog).
+Behavior matrix:
 
 - **Demo carries fog** (vanilla/pub): both checkboxes start on, showing the demo as-is. Fog off
   forces fog off (`R_SwitchFog` to slot 0 every frame); a preset applies that map's `setExpFog`
@@ -31,12 +34,13 @@ an independent **Particles** checkbox for the ambient-weather particles. Behavio
   ambient-weather emitters client-side — each independent of the other, so fog-only, dust-only,
   or both. Renamed stock-map variants (`mp_toujane_fix`, `mp_matmata_fix`, ...) are matched by
   stock-name prefix up to a non-letter boundary.
-- **Preset atmosphere**: while Particles is on and the chosen fog preset is a *different* stock
-  map, the current map's emitter anchor points play the preset map's **dominant weather effect**
-  (its most used ambient efx, with that emitter's firing delay) instead of their own — Leningrad
+- **Particle preset**: while Particles is on and its combo selects a *different* stock map, the
+  current map's emitter anchor points play the preset map's **dominant weather effect** (its
+  most used ambient efx, with that emitter's firing delay) instead of their own — Leningrad
   snow on Toujane, Toujane dust on Railyard. The preset map's own emitters can't be replayed
   directly: their origins are world coordinates anchored to that map's geometry. On demos that
-  carry real emitters this swap also mutes them so the styles don't stack.
+  carry real emitters the swap also mutes them so the styles don't stack. Fog and particle
+  presets are fully independent — Railyard fog with Matmata dust is a valid combination.
 
 Fog values live in `STOCK_MAP_FOG` (copied from the map GSCs' `setExpFog` calls; `mp_decoy` sets
 none). Emitters live in `STOCK_MAP_AMBIENT` — extracted from the `scr_allow_ambient_weather`
@@ -85,14 +89,13 @@ on Downtown/Harbor/Railyard/Leningrad, `dust_wind_night` on Decoy).
 
 `seba_krompir_3v3_tj.dm_1` (zPAM comp, `mp_toujane_fix`): fog restore on/off, stock-fog prefix
 match, preset fog, and the dust replay incl. the `FX_RegisterEffect` fallback (the fix map does
-not precache `fx/dust/dust_wind_brown.efx`).
+not precache `fx/dust/dust_wind_brown.efx`). The `FX_PlayEffect` mute filter and the particle
+style swap verified in game 2026-08-29; the separate particle preset combo is UI wiring on top
+of the same two mechanisms.
 
 ## Open items
 
-- **The Particles mute + preset atmosphere swap are implemented but not yet verified in game**
-  (the fog restore/off/preset paths and the plain replay were; see above). Verify on a vanilla
-  demo (mute + swap) and a comp demo (swap).
-- The preset atmosphere swap contributes only the preset map's *dominant* effect — a mixed
+- The particle style swap contributes only the preset map's *dominant* effect — a mixed
   ambient set (Railyard's snow + fog banks + smoke banks) collapses to its most used one. Per
   emitter the current map's anchors and the preset effect's own firing delay are used.
 - The mute filter swallows the entire weather block, fog/smoke banks included, and would also

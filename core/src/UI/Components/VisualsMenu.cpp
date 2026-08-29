@@ -42,9 +42,11 @@ namespace IWXMVM::UI
                 // (comp mods like zPAM suppress the map fog - and its ambient particles - so
                 // their demos show neither)
                 fogEnabled = Mod::GetGameInterface()->HasDemoFog();
-                fogParticles = fogEnabled;
+                particlesEnabled = fogEnabled;
                 selectedFog.clear();
-                Mod::GetGameInterface()->SetFog(fogEnabled, selectedFog, fogParticles);
+                selectedParticles.clear();
+                Mod::GetGameInterface()->SetFog(fogEnabled, selectedFog);
+                Mod::GetGameInterface()->SetAmbientParticles(particlesEnabled, selectedParticles);
 
                 // We do this once to force r_dof_enable and r_dof_tweak
                 // into sync with each other
@@ -234,7 +236,7 @@ namespace IWXMVM::UI
             ImGui::SetCursorPosX(checkboxColumnPosition);
             ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
             if (ImGui::Checkbox("##fogCheckbox", &fogEnabled))
-                Mod::GetGameInterface()->SetFog(fogEnabled, selectedFog, fogParticles);
+                Mod::GetGameInterface()->SetFog(fogEnabled, selectedFog);
 
             if (fogEnabled)
             {
@@ -249,7 +251,7 @@ namespace IWXMVM::UI
                     if (ImGui::Selectable(ORIGINAL_FOG_LABEL, selectedFog.empty()))
                     {
                         selectedFog.clear();
-                        Mod::GetGameInterface()->SetFog(fogEnabled, selectedFog, fogParticles);
+                        Mod::GetGameInterface()->SetFog(fogEnabled, selectedFog);
                     }
 
                     for (const auto& preset : availableFogPresets)
@@ -257,23 +259,59 @@ namespace IWXMVM::UI
                         if (ImGui::Selectable(preset.c_str(), selectedFog == preset))
                         {
                             selectedFog = preset;
-                            Mod::GetGameInterface()->SetFog(fogEnabled, selectedFog, fogParticles);
+                            Mod::GetGameInterface()->SetFog(fogEnabled, selectedFog);
                         }
                     }
                     ImGui::EndCombo();
                 }
                 ImGui::Unindent();
             }
+        }
 
-            // ambient-weather particles (dust, snow, fog banks), independent of the fog: mutes
-            // the real emitter entities a demo carries, or the client-side replay on comp demos;
-            // a fog preset from another map swaps in that map's particle style
+        // ambient-weather particles (dust, snow, fog banks), independent of the fog: the checkbox
+        // mutes the real emitter entities a demo carries, or the client-side replay on comp
+        // demos; the combo swaps in another map's particle style
+        static const auto availableParticlePresets = Mod::GetGameInterface()->GetAvailableParticlePresets();
+        if (!availableParticlePresets.empty())
+        {
+            constexpr auto ORIGINAL_PARTICLES_LABEL = "Original";
+
             ImGui::AlignTextToFramePadding();
             ImGui::Text("Particles");
             ImGui::SameLine();
             ImGui::SetCursorPosX(checkboxColumnPosition);
-            if (ImGui::Checkbox("##fogParticlesCheckbox", &fogParticles))
-                Mod::GetGameInterface()->SetFog(fogEnabled, selectedFog, fogParticles);
+            if (ImGui::Checkbox("##particlesCheckbox", &particlesEnabled))
+                Mod::GetGameInterface()->SetAmbientParticles(particlesEnabled, selectedParticles);
+
+            if (particlesEnabled)
+            {
+                ImGui::Indent();
+                ImGui::AlignTextToFramePadding();
+                ImGui::Text("From Map");
+                ImGui::SameLine();
+                ImGui::SetCursorPosX(checkboxColumnPosition);
+                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.4f - ImGui::GetStyle().WindowPadding.x);
+                if (ImGui::BeginCombo("##particlesCombo",
+                                      selectedParticles.empty() ? ORIGINAL_PARTICLES_LABEL : selectedParticles.c_str()))
+                {
+                    if (ImGui::Selectable(ORIGINAL_PARTICLES_LABEL, selectedParticles.empty()))
+                    {
+                        selectedParticles.clear();
+                        Mod::GetGameInterface()->SetAmbientParticles(particlesEnabled, selectedParticles);
+                    }
+
+                    for (const auto& preset : availableParticlePresets)
+                    {
+                        if (ImGui::Selectable(preset.c_str(), selectedParticles == preset))
+                        {
+                            selectedParticles = preset;
+                            Mod::GetGameInterface()->SetAmbientParticles(particlesEnabled, selectedParticles);
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+                ImGui::Unindent();
+            }
         }
 
         ImGui::AlignTextToFramePadding();

@@ -362,8 +362,10 @@ namespace IWXMVM::IW2::Hooks::Fog
         using R_SwitchFog_t = int(__cdecl*)(int index, int timeMs, int durationMs);
 
         bool fogEnabled = true;
-        bool particlesEnabled = true;  // show ambient particles: mutes the demo's own, or gates the replay
-        std::string presetName;        // map whose fog to apply; empty = the demo's own fog
+        std::string presetName;  // map whose fog to apply; empty = the demo's own fog
+
+        bool particlesEnabled = true;     // show ambient particles: mutes the demo's own, or gates the replay
+        std::string particlesPresetName;  // map whose particle style to play; empty = the current map's own
 
         // set while our values (or a forced "off") sit in the renderer, so that returning to the
         // demo's own fog re-parses the fog configstring exactly once
@@ -712,12 +714,17 @@ namespace IWXMVM::IW2::Hooks::Fog
                                 reinterpret_cast<uintptr_t*>(&FX_PlayEffect_Trampoline));
     }
 
-    void SetOverride(bool enabled, const std::string& preset, bool particles)
+    void SetFogOverride(bool enabled, const std::string& preset)
     {
         fogEnabled = enabled;
-        particlesEnabled = particles;
         presetName = preset;
         lastWarnedMap.clear();
+    }
+
+    void SetParticlesOverride(bool enabled, const std::string& preset)
+    {
+        particlesEnabled = enabled;
+        particlesPresetName = preset;
         // re-resolve next frame: another demo numbers its fx ids differently
         ResetEmitters();
         SetRealEmittersMuted(false, {});
@@ -747,6 +754,18 @@ namespace IWXMVM::IW2::Hooks::Fog
         return names;
     }
 
+    std::vector<std::string> GetParticlePresetNames()
+    {
+        // every map with an ambient block - one more than the fog list: mp_decoy has night dust
+        // but sets no fog
+        std::vector<std::string> names;
+        for (const auto& ambient : STOCK_MAP_AMBIENT)
+        {
+            names.emplace_back(ambient.map);
+        }
+        return names;
+    }
+
     void Apply()
     {
         if (!Structures::IsDemoPlaying())
@@ -757,14 +776,14 @@ namespace IWXMVM::IW2::Hooks::Fog
         const auto demoHasFog = DemoHasFog();
         const auto mapName = GetMapName();
 
-        // The particle toggle is independent of the fog: demos that carry fog also carry the
+        // The particle controls are independent of the fog: demos that carry fog also carry the
         // real server-spawned ambient emitter entities (muted at FX_PlayEffect when unwanted),
-        // while fogless (comp) demos get the map's stock emitters replayed client-side. A fog
-        // preset from another stock map also carries its atmosphere: the current map's anchor
+        // while fogless (comp) demos get the map's stock emitters replayed client-side. A
+        // particle preset from another stock map swaps the style: the current map's anchor
         // points play the preset map's dominant weather effect instead of their own.
         const auto currentAmbient = FindByMapName(STOCK_MAP_AMBIENT, mapName);
         const auto presetAmbient =
-            fogEnabled && !presetName.empty() ? FindByMapName(STOCK_MAP_AMBIENT, presetName) : nullptr;
+            !particlesPresetName.empty() ? FindByMapName(STOCK_MAP_AMBIENT, particlesPresetName) : nullptr;
         const auto presetStyle =
             presetAmbient != nullptr && presetAmbient != currentAmbient ? DominantEmitter(presetAmbient) : nullptr;
 

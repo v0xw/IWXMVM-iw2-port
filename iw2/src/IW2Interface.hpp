@@ -605,9 +605,19 @@ namespace IWXMVM::IW2
             return Hooks::Fog::DemoHasFog();
         }
 
-        void SetFog(bool enabled, const std::string& presetName, bool particles) final
+        void SetFog(bool enabled, const std::string& presetName) final
         {
-            Hooks::Fog::SetOverride(enabled, presetName, particles);
+            Hooks::Fog::SetFogOverride(enabled, presetName);
+        }
+
+        std::vector<std::string> GetAvailableParticlePresets() final
+        {
+            return Hooks::Fog::GetParticlePresetNames();
+        }
+
+        void SetAmbientParticles(bool enabled, const std::string& presetName) final
+        {
+            Hooks::Fog::SetParticlesOverride(enabled, presetName);
         }
 
         // ----------------------------------------------------------------------------------------------------

@@ -497,9 +497,11 @@ namespace IWXMVM::IW2
         {
             using Section = Types::HudToggle::Section;
             // ids are the historical preset keys (persisted as "iwxmvm_ui_<id>"); toggles marked
-            // requiresModDemo control elements only mod (zPAM) demos contain
+            // requiresModDemo control elements only mod (zPAM) demos contain. Hitmarkers are NOT
+            // mod-only: the stock _damagefeedback.gsc creates the same damage_feedback hudelem
+            // zPAM's variant does, so vanilla demos carry them too.
             return {
-                {"showhitmarkers", "Hitmarkers", Section::Main, Hooks::HUD::showHitmarkers, true},
+                {"showhitmarkers", "Hitmarkers", Section::Main, Hooks::HUD::showHitmarkers, false},
                 {"showkilledby", "Killed-by Text", Section::Main, Hooks::HUD::showKilledByMessages, false},
                 {"showtimer", "Timer", Section::Main, Hooks::HUD::showTimer, false},
                 {"showplayersleft", "Players Left Alive", Section::Main, Hooks::HUD::showPlayersLeftAlive, true},

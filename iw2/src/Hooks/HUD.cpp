@@ -3,6 +3,7 @@
 
 #include "Components/CameraManager.hpp"
 #include "Components/Rendering.hpp"
+#include "Mod.hpp"
 #include "Graphics/PostProcessSettings.hpp"
 #include "Types/RenderingFlags.hpp"
 #include "Utilities/HookManager.hpp"
@@ -56,10 +57,14 @@ namespace IWXMVM::IW2::Hooks::HUD
     // ---------------------------------------------------------------------------------------------------------
     // Scripted hudelem filtering.
     //
-    // All scripted hud elements (server / GSC created: hint icons, timers, scores, zPAM's hitmarkers, ...) live
+    // All scripted hud elements (server / GSC created: hint icons, timers, scores, hitmarkers, ...) live
     // in two arrays inside the current snapshot and are drawn by CG_Draw2dHudElems, which draws the elements
     // whose "foreground" field matches the pass it renders. To hide a subset we temporarily give the unwanted
     // elements a foreground value no pass ever asks for while CG_Draw2D runs, and restore them afterwards.
+    //
+    // Classifiers that describe zPAM's screen layout (mod text, players left) only apply while a mod demo is
+    // loaded: their toggles are greyed out on vanilla demos, and a greyed-out toggle must not silently hide
+    // vanilla elements that happen to sit in the same screen regions.
     // ---------------------------------------------------------------------------------------------------------
 
     namespace
@@ -77,6 +82,8 @@ namespace IWXMVM::IW2::Hooks::HUD
 
         // evaluated once per frame in MaskHiddenHudElems
         bool hitmarkersVisibleThisFrame = true;
+        bool modTextVisibleThisFrame = true;
+        bool playersLeftVisibleThisFrame = true;
 
         bool IsMaterialElem(int type)
         {
@@ -96,6 +103,8 @@ namespace IWXMVM::IW2::Hooks::HUD
 
         bool IsHitmarkerElem(uint8_t* elem)
         {
+            // both the stock _damagefeedback.gsc and zPAM's variant of it show hits through
+            // client hudelems with this shader, so this matches vanilla and mod demos alike
             const auto type = *reinterpret_cast<int*>(elem + Addresses::hudElem_type);
             return IsMaterialElem(type) && _stricmp(GetElemMaterialName(elem), "damage_feedback") == 0;
         }
@@ -184,9 +193,9 @@ namespace IWXMVM::IW2::Hooks::HUD
                 else if (IsTimerElem(elem))
                     visible = showTimer;
                 else if (IsModTextElem(elem))
-                    visible = showModText;
+                    visible = modTextVisibleThisFrame;
                 else if (IsPlayersLeftElem(elem))
-                    visible = showPlayersLeftAlive;
+                    visible = playersLeftVisibleThisFrame;
                 else if (IsScoreElem(elem))
                     visible = showScore;
                 else
@@ -205,8 +214,11 @@ namespace IWXMVM::IW2::Hooks::HUD
         {
             maskedCount = 0;
             hitmarkersVisibleThisFrame = showHitmarkers && PlayerFeedbackVisible();
-            if (hitmarkersVisibleThisFrame && showScore && showTimer && showBombTimer && showPlayersLeftAlive &&
-                showModText)
+            const bool isModDemo = !Mod::GetGameInterface()->GetDemoModName().empty();
+            modTextVisibleThisFrame = showModText || !isModDemo;
+            playersLeftVisibleThisFrame = showPlayersLeftAlive || !isModDemo;
+            if (hitmarkersVisibleThisFrame && showScore && showTimer && showBombTimer && playersLeftVisibleThisFrame &&
+                modTextVisibleThisFrame)
                 return;
 
             const auto snap = *Structures::At<uint8_t*>(Addresses::cg_nextSnap);
@@ -505,6 +517,12 @@ namespace IWXMVM::IW2::Hooks::HUD
         if (matchesAny({"MP_CONNECTED", "MP_DISCONNECTED", "MP_JOINED", "MP_SWITCHING", "MP_RENAMED",
                         "ELIMINATED", "ACCOMPLISHED", "MP_ROUNDDRAW", "MP_TIMEHASEXPIRED", "MP_TIME_LIMIT_REACHED",
                         "MP_FRIENDLY_FIRE"}))
+            return showKillfeedOtherInfo ? 1 : 0;
+
+        // unrecognized lines are mod prints on mod demos; on vanilla demos (where the "zPAM
+        // Messages" toggle is greyed out) they are just more "other info" and must follow that
+        // toggle instead of silently disappearing
+        if (Mod::GetGameInterface()->GetDemoModName().empty())
             return showKillfeedOtherInfo ? 1 : 0;
 
         return showKillfeedModMessages ? 1 : 0;

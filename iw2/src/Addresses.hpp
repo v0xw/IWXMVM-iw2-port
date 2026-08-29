@@ -93,6 +93,15 @@ namespace IWXMVM::IW2::Addresses
     constexpr uintptr_t CG_Obituary = 0x004E03F0;  // entityState_t* in EAX (otherEntityNum = victim, attackerEntityNum), localClientNum in DIL
     constexpr uintptr_t cg_centerPrintTime = 0x01519A10;  // int, start time of the active centerprint; 0 = none (CG_DrawCenterString @ 0x4C8360 gates on it). CG_Obituary centerprints the "You killed X" / "Killed by X" texts
 
+    constexpr uintptr_t CG_ParseFog = 0x004D07D0;  // void __cdecl(); re-reads the fog configstring (12) and hands it to the renderer
+
+    // custom convention (mirrors the game's looped-fx entity handler @ 0x4CD6B0): ECX = the fx
+    // system (*fx_system), stack args (fxHandle, float origin[3], float forward[3]), callee-cleaned
+    constexpr uintptr_t FX_PlayEffect = 0x00499570;
+    // int __cdecl(const char* name) -> fx handle (0 on failure); accepts the full "fx/....efx"
+    // form (it strips prefix/extension itself). What the game calls per effect-name configstring.
+    constexpr uintptr_t FX_RegisterEffect = 0x0049A9F0;
+
     constexpr uintptr_t CG_ExecuteNewServerCommands = 0x004D2150;  // latestSequence in ESI, EDI (low byte) = 0
     constexpr uintptr_t CG_ServerCommand = 0x004D1B80;
     constexpr uintptr_t CL_GetServerCommand = 0x00401710;
@@ -161,8 +170,14 @@ namespace IWXMVM::IW2::Addresses
     constexpr uintptr_t cgs_viewport = 0x014E5704;  // int x, y, width, height
     constexpr uintptr_t cgs_serverCommandSequence = 0x014E5718;
     constexpr uintptr_t cgs_processedSnapshotNum = 0x014E571C;
+    // int[64], one handle per precached effect: index = fx id = effect-name configstring - 846
+    // (ids 1..63; CS_EFFECT_NAMES = 846 holds the loadfx path verbatim). Filled on configstring
+    // parse via FX_RegisterEffect; 0 = not registered.
+    constexpr uintptr_t cgs_fxHandles = 0x014E6040;
+    constexpr uintptr_t fx_system = 0x019A1BEC;  // void*; the ECX context FX_PlayEffect expects
 
     constexpr uintptr_t cg = 0x014EE080;  // sizeof(cg_t) == 0xF49A0
+    constexpr uintptr_t cg_time = 0x01513C30;  // int; cg.time (cg + 0x25BB0)
     constexpr uintptr_t cg_clientNum = 0x014EE084;
     constexpr uintptr_t cg_isDemoPlaying = 0x014EE088;
     constexpr uintptr_t cg_cubemapShot = 0x014EE08C;  // int; nonzero while rendering a cubemap shot (game skips all 2D)
@@ -215,6 +230,11 @@ namespace IWXMVM::IW2::Addresses
     constexpr uintptr_t cmd_argv = 0x00B17A80;  // char*[]
     constexpr uintptr_t win_hwnd = 0x00D7713C;  // HWND
     constexpr uintptr_t gfx_module = 0x00D53E80;  // HMODULE of gfx_d3d_mp_x86_s.dll
+    // slots of the exe's gfx function table (base 0x0068A1E8; layout per CoD2x drawing.h), refilled from the
+    // renderer DLL on every vid_restart - read the slot at call time, never cache the pointer. Fog slot 0 is
+    // "no fog", slot 1 the script fog set from the fog configstring.
+    constexpr uintptr_t gfxFunc_R_SetFog = 0x0068A264;     // int __cdecl(int index, float near, float far, int r255, int g255, int b255, float density); density < 1 = exponential
+    constexpr uintptr_t gfxFunc_R_SwitchFog = 0x0068A268;  // int __cdecl(int index, int timeMs, int durationMs)
     constexpr uintptr_t mouse_windowIsActive = 0x00D52A60;  // int
     constexpr uintptr_t mouse_ingameCursorActive = 0x00D52A68;  // byte
     constexpr uintptr_t mouse_enabled = 0x00D52A69;  // byte, gates both the vanilla and the CoD2x mouse loop

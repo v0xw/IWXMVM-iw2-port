@@ -39,6 +39,8 @@ namespace IWXMVM::UI
         Components::VisualConfiguration::Settings visuals;
         Components::VisualConfiguration::Settings defaultVisuals;
         std::string selectedSky;  // empty = the map's own sky
+        bool fogEnabled = true;
+        std::string selectedFog;  // fog preset name; empty = the demo's own fog
         bool visualsInitialized = false;
         Preset defaultPreset;
         Preset currentPreset;

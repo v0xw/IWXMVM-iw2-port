@@ -30,10 +30,13 @@ them across a demo.
 
 ## Fog control
 
-The natural companion to the sky switcher (its known limitation: map fog gives away the swap).
-Expose the per-map fog start/end/color in the Visuals tab like the sun controls. Requires finding
-the fog state/command in the gfx DLL — same reversing recipe as the sky work (see
-`cod2-renderer-facts` notes / commit 2884238's address-hunting approach).
+Partially done: the Visuals tab has a fog toggle plus a stock-map fog preset list. On zPAM demos
+(no fog configstring) enabling fog restores the map's own stock fog *and* replays the map's
+ambient-weather particle emitters (dust, fog banks, snow — the `scr_allow_ambient_weather` loopfx
+blocks comp rules suppress) via the client's `FX_PlayEffect`. Remaining idea: free-form
+density/color sliders like the sun controls — the plumbing exists in `Hooks/Fog.cpp` (the exe's
+gfx-table `R_SetFog`/`R_SwitchFog`, applied per frame from the CG_Draw2D hook), so this is now
+just UI plus keyframeable properties.
 
 ## Camera export to After Effects / Blender
 

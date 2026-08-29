@@ -10,6 +10,7 @@
 #include "../Addresses.hpp"
 #include "../Functions.hpp"
 #include "../Patches.hpp"
+#include "Fog.hpp"
 #include "Sky.hpp"
 #include "../Structures.hpp"
 
@@ -400,6 +401,8 @@ namespace IWXMVM::IW2::Hooks::HUD
         // the backend resolves 'sampler.sky' from the world struct only when it executes the queued
         // scene, so applying the sky override here still affects the current frame
         Sky::Apply();
+        // same for the fog state the backend reads
+        Fog::Apply();
 
         // the scene view command is already queued at this point, the 2D commands are not - the
         // marker lands exactly between them in the backend's command stream

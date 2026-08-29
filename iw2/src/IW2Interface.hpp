@@ -9,6 +9,7 @@
 #include "Hooks.hpp"
 #include "Hooks/Camera.hpp"
 #include "Hooks/Diagnostics.hpp"
+#include "Hooks/Fog.hpp"
 #include "Hooks/HUD.hpp"
 #include "Hooks/Kills.hpp"
 #include "Hooks/Playback.hpp"
@@ -592,6 +593,21 @@ namespace IWXMVM::IW2
         void SetSky(const std::string& materialName) final
         {
             Hooks::Sky::SetOverride(materialName);
+        }
+
+        std::vector<std::string> GetAvailableFogPresets() final
+        {
+            return Hooks::Fog::GetPresetNames();
+        }
+
+        bool HasDemoFog() final
+        {
+            return Hooks::Fog::DemoHasFog();
+        }
+
+        void SetFog(bool enabled, const std::string& presetName) final
+        {
+            Hooks::Fog::SetOverride(enabled, presetName);
         }
 
         // ----------------------------------------------------------------------------------------------------

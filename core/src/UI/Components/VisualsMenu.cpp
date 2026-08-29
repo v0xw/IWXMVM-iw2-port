@@ -38,6 +38,12 @@ namespace IWXMVM::UI
                            Mod::GetGameInterface()->GetHudToggles()};
                 recentPresets = {};
 
+                // start from what the demo actually displays: unchecked when it carries no fog
+                // (comp mods like zPAM suppress the map fog, so their demos have none to show)
+                fogEnabled = Mod::GetGameInterface()->HasDemoFog();
+                selectedFog.clear();
+                Mod::GetGameInterface()->SetFog(fogEnabled, selectedFog);
+
                 // We do this once to force r_dof_enable and r_dof_tweak
                 // into sync with each other
                 UpdateDof();
@@ -212,6 +218,49 @@ namespace IWXMVM::UI
                     }
                 }
                 ImGui::EndCombo();
+            }
+        }
+
+        static const auto availableFogPresets = Mod::GetGameInterface()->GetAvailableFogPresets();
+        if (!availableFogPresets.empty())
+        {
+            constexpr auto ORIGINAL_FOG_LABEL = "Original";
+
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Fog");
+            ImGui::SameLine();
+            ImGui::SetCursorPosX(checkboxColumnPosition);
+            ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
+            if (ImGui::Checkbox("##fogCheckbox", &fogEnabled))
+                Mod::GetGameInterface()->SetFog(fogEnabled, selectedFog);
+
+            if (fogEnabled)
+            {
+                ImGui::Indent();
+                ImGui::AlignTextToFramePadding();
+                ImGui::Text("From Map");
+                ImGui::SameLine();
+                ImGui::SetCursorPosX(checkboxColumnPosition);
+                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.4f - ImGui::GetStyle().WindowPadding.x);
+                if (ImGui::BeginCombo("##fogCombo", selectedFog.empty() ? ORIGINAL_FOG_LABEL : selectedFog.c_str()))
+                {
+                    if (ImGui::Selectable(ORIGINAL_FOG_LABEL, selectedFog.empty()))
+                    {
+                        selectedFog.clear();
+                        Mod::GetGameInterface()->SetFog(fogEnabled, selectedFog);
+                    }
+
+                    for (const auto& preset : availableFogPresets)
+                    {
+                        if (ImGui::Selectable(preset.c_str(), selectedFog == preset))
+                        {
+                            selectedFog = preset;
+                            Mod::GetGameInterface()->SetFog(fogEnabled, selectedFog);
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+                ImGui::Unindent();
             }
         }
 

@@ -104,6 +104,25 @@ namespace IWXMVM
         {
         }
 
+        // Fog override: names of alternative fog presets (typically other maps' fog) the current
+        // game can apply on the fly. An empty list hides the fog controls in the UI.
+        virtual std::vector<std::string> GetAvailableFogPresets()
+        {
+            return {};
+        }
+        // Whether the loaded demo itself renders any fog (used as the fog toggle's initial state;
+        // some competitive mods suppress the map fog server-side, so their demos carry none).
+        virtual bool HasDemoFog()
+        {
+            return true;
+        }
+        // enabled=false forces fog off. enabled=true with an empty preset shows the demo's own fog
+        // (a game may substitute the current map's stock fog when the demo carries none); a
+        // non-empty preset applies that preset's fog instead.
+        virtual void SetFog(bool enabled, const std::string& presetName)
+        {
+        }
+
         // Game-specific fine-grained HUD toggles, rendered generically by the visuals tab. A
         // non-empty list replaces the combined "Show Icons and Text" switch there (the granular
         // toggles supersede it). Values reflect the game's current state; changes come back

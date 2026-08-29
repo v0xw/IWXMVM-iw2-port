@@ -128,6 +128,7 @@
     <ClCompile Include="src\Hooks\Kills.cpp" />
     <ClCompile Include="src\Hooks\Models.cpp" />
     <ClCompile Include="src\Hooks\PlayerAnimation.cpp" />
+    <ClCompile Include="src\Hooks\Fog.cpp" />
     <ClCompile Include="src\Hooks\Sky.cpp" />
     <ClCompile Include="src\Hooks\Playback.cpp" />
     <ClCompile Include="src\StdInclude.cpp">
@@ -146,6 +147,7 @@
     <ClInclude Include="src\Hooks\Kills.hpp" />
     <ClInclude Include="src\Hooks\Models.hpp" />
     <ClInclude Include="src\Hooks\PlayerAnimation.hpp" />
+    <ClInclude Include="src\Hooks\Fog.hpp" />
     <ClInclude Include="src\Hooks\Sky.hpp" />
     <ClInclude Include="src\Hooks\Playback.hpp" />
     <ClInclude Include="src\IW2Interface.hpp" />

@@ -13,6 +13,18 @@ namespace IWXMVM::IW2::Patches
         // int __cdecl(); toggled by the Visuals tab blood overlay switch.
         ReturnPatch CG_DrawDamageBlend{Addresses::CG_DrawDamageBlend, PatchApplySetting::Deferred};
 
+        // The pulsing low-health blood overlay, drawn through the hud.menu ownerdraw path - the only ownerdraw
+        // handler that skips the hud_enable check, so it needs its own patch. Toggled with the blood overlay
+        // switch alongside CG_DrawDamageBlend. Caller-cleaned stack args, plain ret.
+        ReturnPatch CG_DrawLowHealthOverlay{Addresses::CG_DrawLowHealthOverlay, PatchApplySetting::Deferred};
+
+        // The spectator UI drawn when the POV player dies or spectates: the "SPECTATOR" label, the
+        // "Following" + player name texts and the follow key hints. All int __cdecl(); patched out
+        // in mod-controlled camera modes.
+        ReturnPatch CG_DrawSpectatorLabel{Addresses::CG_DrawSpectatorLabel, PatchApplySetting::Deferred};
+        ReturnPatch CG_DrawFollowHints{Addresses::CG_DrawFollowHints, PatchApplySetting::Deferred};
+        ReturnPatch CG_DrawFollowText{Addresses::CG_DrawFollowText, PatchApplySetting::Deferred};
+
         // Latches the snapshot cursor hint (weapon pickup / use / plant prompts) into the cg globals the hint
         // drawer reads. int __cdecl(); patched out while the hints toggle is off.
         ReturnPatch CG_UpdateCursorHint{Addresses::CG_UpdateCursorHint, PatchApplySetting::Deferred};

@@ -82,6 +82,7 @@ namespace IWXMVM::IW2::Hooks::HUD
         size_t maskedCount = 0;
 
         // evaluated once per frame in MaskHiddenHudElems
+        bool feedbackVisibleThisFrame = true;
         bool hitmarkersVisibleThisFrame = true;
         bool modTextVisibleThisFrame = true;
         bool playersLeftVisibleThisFrame = true;
@@ -108,6 +109,18 @@ namespace IWXMVM::IW2::Hooks::HUD
             // client hudelems with this shader, so this matches vanilla and mod demos alike
             const auto type = *reinterpret_cast<int*>(elem + Addresses::hudElem_type);
             return IsMaterialElem(type) && _stricmp(GetElemMaterialName(elem), "damage_feedback") == 0;
+        }
+
+        bool IsProgressBarElem(uint8_t* elem)
+        {
+            // zPAM's progress bars (SnD plant/defuse, HQ radio capture, RE objective) are raw "white" bar
+            // elements on "black" backdrops; only these two materials are ever drawn as bare rectangles
+            const auto type = *reinterpret_cast<int*>(elem + Addresses::hudElem_type);
+            if (!IsMaterialElem(type))
+                return false;
+
+            const auto name = GetElemMaterialName(elem);
+            return _stricmp(name, "white") == 0 || _stricmp(name, "black") == 0;
         }
 
         bool IsTimerType(int type)
@@ -189,6 +202,8 @@ namespace IWXMVM::IW2::Hooks::HUD
                 bool visible;
                 if (IsHitmarkerElem(elem))
                     visible = hitmarkersVisibleThisFrame;
+                else if (IsProgressBarElem(elem))
+                    visible = feedbackVisibleThisFrame;  // POV interaction feedback, like the cursor hints
                 else if (IsBombTimerElem(elem))
                     visible = showBombTimer;
                 else if (IsTimerElem(elem))
@@ -200,7 +215,7 @@ namespace IWXMVM::IW2::Hooks::HUD
                 else if (IsScoreElem(elem))
                     visible = showScore;
                 else
-                    visible = true;  // unclassified elements (e.g. zPAM's plant progress bar) always draw
+                    visible = true;  // unclassified elements always draw
 
                 if (!visible)
                 {
@@ -214,12 +229,13 @@ namespace IWXMVM::IW2::Hooks::HUD
         void MaskHiddenHudElems()
         {
             maskedCount = 0;
-            hitmarkersVisibleThisFrame = showHitmarkers && PlayerFeedbackVisible();
+            feedbackVisibleThisFrame = PlayerFeedbackVisible();
+            hitmarkersVisibleThisFrame = showHitmarkers && feedbackVisibleThisFrame;
             const bool isModDemo = !Mod::GetGameInterface()->GetDemoModName().empty();
             modTextVisibleThisFrame = showModText || !isModDemo;
             playersLeftVisibleThisFrame = showPlayersLeftAlive || !isModDemo;
-            if (hitmarkersVisibleThisFrame && showScore && showTimer && showBombTimer && playersLeftVisibleThisFrame &&
-                modTextVisibleThisFrame)
+            if (feedbackVisibleThisFrame && hitmarkersVisibleThisFrame && showScore && showTimer && showBombTimer &&
+                playersLeftVisibleThisFrame && modTextVisibleThisFrame)
                 return;
 
             const auto snap = *Structures::At<uint8_t*>(Addresses::cg_nextSnap);
@@ -251,9 +267,10 @@ namespace IWXMVM::IW2::Hooks::HUD
     void SuppressCursorHints();
 
     // ---------------------------------------------------------------------------------------------------------
-    // Player feedback that is controlled through dvars or patches (damage blend, directional damage icons,
-    // grenade indicator, player HUD, crosshair) is re-evaluated every frame so it follows both the user's
-    // toggles and the active camera mode; camera switches don't run through SetHudInfo.
+    // Player feedback that is controlled through dvars or patches (damage blend, low-health overlay,
+    // directional damage icons, grenade indicator, spectator UI, player HUD, crosshair) is re-evaluated every
+    // frame so it follows both the user's toggles and the active camera mode; camera switches don't run
+    // through SetHudInfo.
     // ---------------------------------------------------------------------------------------------------------
 
     namespace
@@ -271,10 +288,34 @@ namespace IWXMVM::IW2::Hooks::HUD
 
             const bool feedback = PlayerFeedbackVisible();
 
+            // the blood on screen comes from two drawers: the on-hit red blend, and the pulsing low-health
+            // overlay - a hud.menu ownerdraw that ignores hud_enable, so it needs its own patch
             if (showBloodOverlay && feedback)
+            {
                 Patches::GetGamePatches().CG_DrawDamageBlend.Revert();
+                Patches::GetGamePatches().CG_DrawLowHealthOverlay.Revert();
+            }
             else
+            {
                 Patches::GetGamePatches().CG_DrawDamageBlend.Apply();
+                Patches::GetGamePatches().CG_DrawLowHealthOverlay.Apply();
+            }
+
+            // the spectator UI ("SPECTATOR" label, "Following" + player name, the follow key hints) belongs
+            // to the POV player's view like the scope reticle does: keep it in first/third person, hide it
+            // in mod-controlled cameras
+            if (feedback)
+            {
+                Patches::GetGamePatches().CG_DrawSpectatorLabel.Revert();
+                Patches::GetGamePatches().CG_DrawFollowHints.Revert();
+                Patches::GetGamePatches().CG_DrawFollowText.Revert();
+            }
+            else
+            {
+                Patches::GetGamePatches().CG_DrawSpectatorLabel.Apply();
+                Patches::GetGamePatches().CG_DrawFollowHints.Apply();
+                Patches::GetGamePatches().CG_DrawFollowText.Apply();
+            }
 
             if (auto damageIconTime = Functions::FindDvar("cg_hudDamageIconTime");
                 damageIconTime && damageIconTime->type == Structures::DVAR_TYPE_INT)
@@ -461,8 +502,8 @@ namespace IWXMVM::IW2::Hooks::HUD
     // Cursor hints (weapon pickup, use / bomb plant prompts, mantle) are latched from the snapshot playerstate
     // into cg globals during the frame, where they linger and fade - the drawer reads the latch. It is cleared
     // right before CG_Draw2D runs, after the frame's latching already happened, so nothing can re-arm it. The
-    // mantle hint additionally has its own dvar. zPAM's plant / defuse progress bar is unrelated (scripted
-    // hudelems) and stays visible.
+    // mantle hint additionally has its own dvar. zPAM's plant / defuse progress bar is unrelated: those are
+    // scripted hudelems, classified as POV feedback by the hudelem masker above.
     // ---------------------------------------------------------------------------------------------------------
 
     void SuppressCursorHints()

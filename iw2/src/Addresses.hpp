@@ -88,6 +88,10 @@ namespace IWXMVM::IW2::Addresses
     constexpr uintptr_t CL_FX_AdjustCamera = 0x00402650;
     constexpr uintptr_t CG_DrawWeapReticle = 0x004C8CB0;  // double __cdecl(); draws the sniper scope overlay when zoomed (else no-op), returns the crosshair fade factor in st0
     constexpr uintptr_t CG_DrawDamageBlend = 0x004C99F0;  // int __cdecl(); full-screen red blend while cg.damageTime > cg.time (the on-hit blood overlay)
+    constexpr uintptr_t CG_DrawLowHealthOverlay = 0x004C5250;  // hud.menu ownerdraw 109 (CG_PLAYER_LOW_HEALTH_OVERLAY): the pulsing low-health blood overlay; the only ownerdraw without a hud_enable check. Item rect in ESI + caller-cleaned stack args, plain ret
+    constexpr uintptr_t CG_DrawSpectatorLabel = 0x004CB4E0;  // int __cdecl(); bottom-center "SPECTATOR" text while the POV is a free spectator (pm_type 4)
+    constexpr uintptr_t CG_DrawFollowHints = 0x004CB890;  // int __cdecl(); spectator key hints ("Press X for next player", ...), gated on cg_descriptiveText + the pm_flags follow-cycling bits
+    constexpr uintptr_t CG_DrawFollowText = 0x004CBA90;  // int __cdecl(); centered "Following" + player name texts while pm_flags has the following bit
     constexpr uintptr_t CG_GetTeamColor = 0x004D9E50;  // out color vec4 in EAX, team on the stack (1 = axis, 2 = allies); rgb from the g_TeamColor_* dvars, out alpha preserved
 
     constexpr uintptr_t CG_Obituary = 0x004E03F0;  // entityState_t* in EAX (otherEntityNum = victim, attackerEntityNum), localClientNum in DIL

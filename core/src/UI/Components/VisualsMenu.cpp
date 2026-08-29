@@ -40,9 +40,11 @@ namespace IWXMVM::UI
 
                 // start from what the demo actually displays: unchecked when it carries no fog
                 // (comp mods like zPAM suppress the map fog, so their demos have none to show)
-                fogEnabled = Mod::GetGameInterface()->HasDemoFog();
+                demoHasFog = Mod::GetGameInterface()->HasDemoFog();
+                fogEnabled = demoHasFog;
                 selectedFog.clear();
-                Mod::GetGameInterface()->SetFog(fogEnabled, selectedFog);
+                fogParticles = true;
+                Mod::GetGameInterface()->SetFog(fogEnabled, selectedFog, fogParticles);
 
                 // We do this once to force r_dof_enable and r_dof_tweak
                 // into sync with each other
@@ -232,7 +234,7 @@ namespace IWXMVM::UI
             ImGui::SetCursorPosX(checkboxColumnPosition);
             ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
             if (ImGui::Checkbox("##fogCheckbox", &fogEnabled))
-                Mod::GetGameInterface()->SetFog(fogEnabled, selectedFog);
+                Mod::GetGameInterface()->SetFog(fogEnabled, selectedFog, fogParticles);
 
             if (fogEnabled)
             {
@@ -247,7 +249,7 @@ namespace IWXMVM::UI
                     if (ImGui::Selectable(ORIGINAL_FOG_LABEL, selectedFog.empty()))
                     {
                         selectedFog.clear();
-                        Mod::GetGameInterface()->SetFog(fogEnabled, selectedFog);
+                        Mod::GetGameInterface()->SetFog(fogEnabled, selectedFog, fogParticles);
                     }
 
                     for (const auto& preset : availableFogPresets)
@@ -255,10 +257,22 @@ namespace IWXMVM::UI
                         if (ImGui::Selectable(preset.c_str(), selectedFog == preset))
                         {
                             selectedFog = preset;
-                            Mod::GetGameInterface()->SetFog(fogEnabled, selectedFog);
+                            Mod::GetGameInterface()->SetFog(fogEnabled, selectedFog, fogParticles);
                         }
                     }
                     ImGui::EndCombo();
+                }
+
+                // the replayed ambient-weather particles (dust, snow, fog banks); demos that carry
+                // fog carry the real particle entities, so there is nothing to toggle for them
+                if (!demoHasFog)
+                {
+                    ImGui::AlignTextToFramePadding();
+                    ImGui::Text("Particles");
+                    ImGui::SameLine();
+                    ImGui::SetCursorPosX(checkboxColumnPosition);
+                    if (ImGui::Checkbox("##fogParticlesCheckbox", &fogParticles))
+                        Mod::GetGameInterface()->SetFog(fogEnabled, selectedFog, fogParticles);
                 }
                 ImGui::Unindent();
             }

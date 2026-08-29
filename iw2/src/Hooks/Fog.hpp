@@ -6,9 +6,11 @@ namespace IWXMVM::IW2::Hooks::Fog
     // enabled=false forces fog off; enabled=true with an empty preset shows the demo's own fog -
     // or, for demos whose mod never set any (zPAM comp rules suppress it), the current map's
     // stock fog. A non-empty preset applies that map's fog values instead. On fogless demos,
-    // enabling fog also replays the map's ambient-weather particle emitters (dust, fog banks,
-    // snow) the comp server suppressed alongside the fog.
-    void SetOverride(bool enabled, const std::string& presetName);
+    // enabling fog with particles=true also replays the map's ambient-weather particle emitters
+    // (dust, fog banks, snow) the comp server suppressed alongside the fog; particles=false
+    // restores the fog alone. Demos that carry fog carry the real emitter entities too, so
+    // particles has no effect on them.
+    void SetOverride(bool enabled, const std::string& presetName, bool particles);
 
     // Whether the loaded demo itself carries fog (a usable fog configstring).
     bool DemoHasFog();

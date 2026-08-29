@@ -118,8 +118,11 @@ namespace IWXMVM
         }
         // enabled=false forces fog off. enabled=true with an empty preset shows the demo's own fog
         // (a game may substitute the current map's stock fog when the demo carries none); a
-        // non-empty preset applies that preset's fog instead.
-        virtual void SetFog(bool enabled, const std::string& presetName)
+        // non-empty preset applies that preset's fog instead. particles controls whether restoring
+        // fog to a demo that carries none also brings back the map's ambient-weather particles
+        // (dust, snow, fog banks); it has no effect on demos whose particles are real demo
+        // entities.
+        virtual void SetFog(bool enabled, const std::string& presetName, bool particles)
         {
         }
 

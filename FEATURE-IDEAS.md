@@ -33,7 +33,8 @@ them across a demo.
 Partially done: the Visuals tab has a fog toggle plus a stock-map fog preset list. On zPAM demos
 (no fog configstring) enabling fog restores the map's own stock fog *and* replays the map's
 ambient-weather particle emitters (dust, fog banks, snow — the `scr_allow_ambient_weather` loopfx
-blocks comp rules suppress) via the client's `FX_PlayEffect`. Remaining idea: free-form
+blocks comp rules suppress) via the client's `FX_PlayEffect`; the replay has its own Particles
+sub-toggle so fog and dust can be mixed independently. Remaining idea: free-form
 density/color sliders like the sun controls — the plumbing exists in `Hooks/Fog.cpp` (the exe's
 gfx-table `R_SetFog`/`R_SwitchFog`, applied per frame from the CG_Draw2D hook), so this is now
 just UI plus keyframeable properties.

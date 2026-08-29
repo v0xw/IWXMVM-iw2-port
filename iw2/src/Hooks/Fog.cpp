@@ -361,7 +361,8 @@ namespace IWXMVM::IW2::Hooks::Fog
         using R_SwitchFog_t = int(__cdecl*)(int index, int timeMs, int durationMs);
 
         bool fogEnabled = true;
-        std::string presetName;  // map whose fog to apply; empty = the demo's own fog
+        bool particlesEnabled = true;  // replay the ambient emitters along with restored fog (fogless demos only)
+        std::string presetName;        // map whose fog to apply; empty = the demo's own fog
 
         // set while our values (or a forced "off") sit in the renderer, so that returning to the
         // demo's own fog re-parses the fog configstring exactly once
@@ -581,9 +582,10 @@ namespace IWXMVM::IW2::Hooks::Fog
         }
     }  // namespace
 
-    void SetOverride(bool enabled, const std::string& preset)
+    void SetOverride(bool enabled, const std::string& preset, bool particles)
     {
         fogEnabled = enabled;
+        particlesEnabled = particles;
         presetName = preset;
         lastWarnedMap.clear();
         ResetEmitters();  // re-resolve next frame: another demo numbers its fx ids differently
@@ -624,8 +626,8 @@ namespace IWXMVM::IW2::Hooks::Fog
 
         // demos that render fog also carry the server-spawned ambient particle entities, so there
         // is nothing to replay for them; fogless (comp) demos get the map's stock emitters back
-        // along with the fog
-        if (fogEnabled && !demoHasFog)
+        // along with the fog, unless the particle toggle opts out
+        if (fogEnabled && particlesEnabled && !demoHasFog)
         {
             ApplyEmitters(GetMapName());
         }

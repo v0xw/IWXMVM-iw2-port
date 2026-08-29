@@ -18,17 +18,20 @@ suppressed by comp configs (zPAM comp rules default all `scr_allow_ambient_*` dv
 
 ## What the tool does
 
-The Visuals tab gets a **Fog** checkbox plus a **From Map** preset combo (stock-map fog values).
-Behavior matrix:
+The Visuals tab gets a **Fog** checkbox plus a **From Map** preset combo (stock-map fog values);
+fogless demos additionally get a **Particles** sub-toggle (on by default) that controls the
+ambient-weather replay independently of the fog itself. Behavior matrix:
 
 - **Demo carries fog** (vanilla/pub): checkbox starts on showing the demo's own fog; off forces
   fog off (`R_SwitchFog` to slot 0 every frame); a preset applies that map's `setExpFog` values
   (`R_SetFog` slot 1 + `R_SwitchFog`); back to "Original" re-runs `CG_ParseFog` once. Particles
   need no handling — the real entities are in the demo.
 - **Demo carries no fog** (comp): checkbox starts off. Enabling it restores the current map's own
-  stock fog values ("Original") or a chosen preset, **and** replays the map's stock ambient-weather
-  emitters client-side (see below). Renamed stock-map variants (`mp_toujane_fix`,
-  `mp_matmata_fix`, ...) are matched by stock-name prefix up to a non-letter boundary.
+  stock fog values ("Original") or a chosen preset, **and** — while the **Particles** sub-toggle
+  is on — replays the map's stock ambient-weather emitters client-side (see below); unticking it
+  gives the fog alone. Renamed stock-map variants (`mp_toujane_fix`, `mp_matmata_fix`, ...) are
+  matched by stock-name prefix up to a non-letter boundary. The Particles toggle is hidden on
+  demos that carry fog — their particles are real entities the tool does not touch.
 
 Fog values live in `STOCK_MAP_FOG` (copied from the map GSCs' `setExpFog` calls; `mp_decoy` sets
 none). Emitters live in `STOCK_MAP_AMBIENT` — extracted from the `scr_allow_ambient_weather`
@@ -79,8 +82,8 @@ not precache `fx/dust/dust_wind_brown.efx`).
   map's emitter set would land in the void. If "full preset atmosphere" is wanted (e.g. Leningrad
   snow on Toujane), the plausible approach is to keep the current map's emitter positions/delays
   and swap only the *effect* per preset (snow/dust/fogbank at the local anchor points). Needs a
-  per-preset "atmosphere kind" mapping and probably a separate toggle so fog color and particle
-  style can be mixed deliberately.
+  per-preset "atmosphere kind" mapping. (The replay itself is now independently switchable via
+  the Particles sub-toggle, so fog color and particles can already be mixed on/off deliberately.)
 - Ambient fire (`scr_allow_ambient_fire`: burning smoke plumes, `thin_light_smoke`) is
   deliberately not replayed — it reads as battle scenery rather than weather. Could become its
   own toggle.

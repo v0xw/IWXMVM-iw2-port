@@ -3,6 +3,7 @@
 
 #include "Hooks/Playback.hpp"
 #include "Hooks/Camera.hpp"
+#include "Hooks/Fog.hpp"
 #include "Hooks/HUD.hpp"
 #include "Hooks/Kills.hpp"
 #include "Hooks/Models.hpp"
@@ -16,6 +17,7 @@ namespace IWXMVM::IW2::Hooks
         Hooks::Diagnostics::Install();
         Hooks::Playback::Install();
         Hooks::Camera::Install();
+        Hooks::Fog::Install();
         Hooks::HUD::Install();
         Hooks::Kills::Install();
         Hooks::Models::Install();

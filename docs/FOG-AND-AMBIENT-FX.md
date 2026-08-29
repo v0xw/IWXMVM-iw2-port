@@ -18,20 +18,25 @@ suppressed by comp configs (zPAM comp rules default all `scr_allow_ambient_*` dv
 
 ## What the tool does
 
-The Visuals tab gets a **Fog** checkbox plus a **From Map** preset combo (stock-map fog values);
-fogless demos additionally get a **Particles** sub-toggle (on by default) that controls the
-ambient-weather replay independently of the fog itself. Behavior matrix:
+The Visuals tab gets a **Fog** checkbox, a **From Map** preset combo (stock-map fog values), and
+an independent **Particles** checkbox for the ambient-weather particles. Behavior matrix:
 
-- **Demo carries fog** (vanilla/pub): checkbox starts on showing the demo's own fog; off forces
-  fog off (`R_SwitchFog` to slot 0 every frame); a preset applies that map's `setExpFog` values
-  (`R_SetFog` slot 1 + `R_SwitchFog`); back to "Original" re-runs `CG_ParseFog` once. Particles
-  need no handling — the real entities are in the demo.
-- **Demo carries no fog** (comp): checkbox starts off. Enabling it restores the current map's own
-  stock fog values ("Original") or a chosen preset, **and** — while the **Particles** sub-toggle
-  is on — replays the map's stock ambient-weather emitters client-side (see below); unticking it
-  gives the fog alone. Renamed stock-map variants (`mp_toujane_fix`, `mp_matmata_fix`, ...) are
-  matched by stock-name prefix up to a non-letter boundary. The Particles toggle is hidden on
-  demos that carry fog — their particles are real entities the tool does not touch.
+- **Demo carries fog** (vanilla/pub): both checkboxes start on, showing the demo as-is. Fog off
+  forces fog off (`R_SwitchFog` to slot 0 every frame); a preset applies that map's `setExpFog`
+  values (`R_SetFog` slot 1 + `R_SwitchFog`); back to "Original" re-runs `CG_ParseFog` once.
+  The demo's particles are real looped-fx entities in its snapshots; Particles off mutes them
+  through the `FX_PlayEffect` filter (see below).
+- **Demo carries no fog** (comp): both checkboxes start off. Fog on restores the current map's
+  own stock fog values ("Original") or a chosen preset; Particles on replays the map's stock
+  ambient-weather emitters client-side — each independent of the other, so fog-only, dust-only,
+  or both. Renamed stock-map variants (`mp_toujane_fix`, `mp_matmata_fix`, ...) are matched by
+  stock-name prefix up to a non-letter boundary.
+- **Preset atmosphere**: while Particles is on and the chosen fog preset is a *different* stock
+  map, the current map's emitter anchor points play the preset map's **dominant weather effect**
+  (its most used ambient efx, with that emitter's firing delay) instead of their own — Leningrad
+  snow on Toujane, Toujane dust on Railyard. The preset map's own emitters can't be replayed
+  directly: their origins are world coordinates anchored to that map's geometry. On demos that
+  carry real emitters this swap also mutes them so the styles don't stack.
 
 Fog values live in `STOCK_MAP_FOG` (copied from the map GSCs' `setExpFog` calls; `mp_decoy` sets
 none). Emitters live in `STOCK_MAP_AMBIENT` — extracted from the `scr_allow_ambient_weather`
@@ -68,6 +73,13 @@ on Downtown/Harbor/Railyard/Leningrad, `dust_wind_night` on Decoy).
 - The replay runs from the CG_Draw2D hook (`Fog::Apply`), one frame stage later than the engine's
   own entity processing; the fx system picks the spawned particles up on the next frame. Verified
   working in practice.
+- Muting the demo's own ambient entities has no per-entity kill switch, but every looped-fx
+  firing funnels through `FX_PlayEffect` — so the tool detours it and swallows calls whose
+  handle belongs to a game-registered ambient-weather effect (the `STOCK_MAP_AMBIENT` efx paths
+  matched against the effect-name configstrings, handles read from `cgs_fxHandles`). The tool's
+  own replay calls the trampoline directly so the filter cannot eat a swapped-in effect that
+  shares a handle with a muted one. Already-spawned particles live out their (short) lifetime
+  after muting kicks in.
 
 ## Verified on
 
@@ -77,13 +89,15 @@ not precache `fx/dust/dust_wind_brown.efx`).
 
 ## Open items
 
-- **Preset fog does not swap the particles.** The replayed emitters are always the *current*
-  map's own — their origins are world coordinates anchored to that map's geometry, so another
-  map's emitter set would land in the void. If "full preset atmosphere" is wanted (e.g. Leningrad
-  snow on Toujane), the plausible approach is to keep the current map's emitter positions/delays
-  and swap only the *effect* per preset (snow/dust/fogbank at the local anchor points). Needs a
-  per-preset "atmosphere kind" mapping. (The replay itself is now independently switchable via
-  the Particles sub-toggle, so fog color and particles can already be mixed on/off deliberately.)
+- **The Particles mute + preset atmosphere swap are implemented but not yet verified in game**
+  (the fog restore/off/preset paths and the plain replay were; see above). Verify on a vanilla
+  demo (mute + swap) and a comp demo (swap).
+- The preset atmosphere swap contributes only the preset map's *dominant* effect — a mixed
+  ambient set (Railyard's snow + fog banks + smoke banks) collapses to its most used one. Per
+  emitter the current map's anchors and the preset effect's own firing delay are used.
+- The mute filter swallows the entire weather block, fog/smoke banks included, and would also
+  mute non-weather uses of the same assets (e.g. `thin_light_smoke_L` doubling as ambient-fire
+  smoke on maps that use that exact asset for both).
 - Ambient fire (`scr_allow_ambient_fire`: burning smoke plumes, `thin_light_smoke`) is
   deliberately not replayed — it reads as battle scenery rather than weather. Could become its
   own toggle.
@@ -92,7 +106,8 @@ not precache `fx/dust/dust_wind_brown.efx`).
 - Locally registered fx handles are cached until the toggle/demo/map changes; a `vid_restart`
   while active could in theory leave a stale handle (the game-registered ones refresh via the
   configstring table, the fallback ones re-register on the next cache rebuild). Not observed in
-  practice; toggle fog off/on after a vid_restart if particles ever vanish.
+  practice; toggle fog off/on after a vid_restart if particles ever vanish. The muted-handle set
+  of the `FX_PlayEffect` filter is cached the same way and shares the caveat.
 - Emitter data was generated by parsing the zPAM map GSCs; if it ever needs regenerating, the
   `scr_allow_ambient_weather` blocks in `zpam3-master/source/maps/mp/mp_*_fx.gsc` (plus each
   map's `loadfx` name→path table) are the source of truth.

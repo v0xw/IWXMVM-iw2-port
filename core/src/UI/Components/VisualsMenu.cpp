@@ -39,11 +39,11 @@ namespace IWXMVM::UI
                 recentPresets = {};
 
                 // start from what the demo actually displays: unchecked when it carries no fog
-                // (comp mods like zPAM suppress the map fog, so their demos have none to show)
-                demoHasFog = Mod::GetGameInterface()->HasDemoFog();
-                fogEnabled = demoHasFog;
+                // (comp mods like zPAM suppress the map fog - and its ambient particles - so
+                // their demos show neither)
+                fogEnabled = Mod::GetGameInterface()->HasDemoFog();
+                fogParticles = fogEnabled;
                 selectedFog.clear();
-                fogParticles = true;
                 Mod::GetGameInterface()->SetFog(fogEnabled, selectedFog, fogParticles);
 
                 // We do this once to force r_dof_enable and r_dof_tweak
@@ -262,20 +262,18 @@ namespace IWXMVM::UI
                     }
                     ImGui::EndCombo();
                 }
-
-                // the replayed ambient-weather particles (dust, snow, fog banks); demos that carry
-                // fog carry the real particle entities, so there is nothing to toggle for them
-                if (!demoHasFog)
-                {
-                    ImGui::AlignTextToFramePadding();
-                    ImGui::Text("Particles");
-                    ImGui::SameLine();
-                    ImGui::SetCursorPosX(checkboxColumnPosition);
-                    if (ImGui::Checkbox("##fogParticlesCheckbox", &fogParticles))
-                        Mod::GetGameInterface()->SetFog(fogEnabled, selectedFog, fogParticles);
-                }
                 ImGui::Unindent();
             }
+
+            // ambient-weather particles (dust, snow, fog banks), independent of the fog: mutes
+            // the real emitter entities a demo carries, or the client-side replay on comp demos;
+            // a fog preset from another map swaps in that map's particle style
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Particles");
+            ImGui::SameLine();
+            ImGui::SetCursorPosX(checkboxColumnPosition);
+            if (ImGui::Checkbox("##fogParticlesCheckbox", &fogParticles))
+                Mod::GetGameInterface()->SetFog(fogEnabled, selectedFog, fogParticles);
         }
 
         ImGui::AlignTextToFramePadding();

@@ -3,6 +3,7 @@
 
 #include <cctype>
 
+#include "Utilities/HookManager.hpp"
 #include "../Addresses.hpp"
 #include "../Structures.hpp"
 
@@ -361,7 +362,7 @@ namespace IWXMVM::IW2::Hooks::Fog
         using R_SwitchFog_t = int(__cdecl*)(int index, int timeMs, int durationMs);
 
         bool fogEnabled = true;
-        bool particlesEnabled = true;  // replay the ambient emitters along with restored fog (fogless demos only)
+        bool particlesEnabled = true;  // show ambient particles: mutes the demo's own, or gates the replay
         std::string presetName;        // map whose fog to apply; empty = the demo's own fog
 
         // set while our values (or a forced "off") sit in the renderer, so that returning to the
@@ -447,20 +448,129 @@ namespace IWXMVM::IW2::Hooks::Fog
                                                  float* forward);
         using FX_RegisterEffect_t = int(__cdecl*)(const char* name);
 
+        // Vanilla/pub demos carry the ambient emitters as real looped-fx entities in their
+        // snapshots. There is no per-entity kill switch, but every looped-fx firing funnels
+        // through FX_PlayEffect - so a detour there can mute them, swallowing calls whose handle
+        // is one of the game-registered ambient-weather effects.
+
+        FX_PlayEffect_t FX_PlayEffect_Trampoline = nullptr;
+
+        bool muteRealEmitters = false;
+        std::vector<int> mutedFxHandles;  // game-registered handles of the ambient-weather effects
+        std::string mutedForMap;          // map the handle set was built for; empty = not built
+
+        bool IsAmbientEffectPath(const char* name)
+        {
+            for (const auto& mapAmbient : STOCK_MAP_AMBIENT)
+            {
+                for (size_t i = 0; i < mapAmbient.count; i++)
+                {
+                    if (_stricmp(mapAmbient.emitters[i].efxPath, name) == 0)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        void SetRealEmittersMuted(bool muted, const std::string& mapName)
+        {
+            if (!muted)
+            {
+                muteRealEmitters = false;
+                mutedForMap.clear();
+                mutedFxHandles.clear();
+                return;
+            }
+            if (mutedForMap != mapName)
+            {
+                mutedForMap = mapName;
+                mutedFxHandles.clear();
+                for (int i = 1; i < MAX_FX_EFFECTS; i++)
+                {
+                    const auto name = GetConfigString(CS_EFFECT_NAMES + i);
+                    if (*name != '\0' && IsAmbientEffectPath(name))
+                    {
+                        const auto handle = *reinterpret_cast<int*>(Addresses::cgs_fxHandles + 4u * i);
+                        if (handle != 0)
+                        {
+                            mutedFxHandles.push_back(handle);
+                        }
+                    }
+                }
+                LOG_INFO("Fog override: muting the {} ambient-weather effects carried by the demo",
+                         mutedFxHandles.size());
+            }
+            muteRealEmitters = true;
+        }
+
+        int __fastcall FX_PlayEffect_Hook(void* fxSystem, void* unusedEdx, int fxHandle, float* origin, float* forward)
+        {
+            if (muteRealEmitters)
+            {
+                for (const auto handle : mutedFxHandles)
+                {
+                    if (handle == fxHandle)
+                    {
+                        return 0;
+                    }
+                }
+            }
+            return FX_PlayEffect_Trampoline(fxSystem, unusedEdx, fxHandle, origin, forward);
+        }
+
+        // the tool's own replay goes through the trampoline so the mute filter cannot swallow it
+        // (a swapped-in preset effect may share its handle with a muted one)
+        FX_PlayEffect_t GetFXPlayEffect()
+        {
+            return FX_PlayEffect_Trampoline != nullptr
+                       ? FX_PlayEffect_Trampoline
+                       : reinterpret_cast<FX_PlayEffect_t>(Addresses::FX_PlayEffect);
+        }
+
+        // a map's dominant weather effect - the most used one of its ambient block (snow on the
+        // winter maps, dust on the desert ones) - with the firing delay it is tuned for
+        const FxEmitter* DominantEmitter(const MapAmbient* ambient)
+        {
+            const FxEmitter* best = nullptr;
+            size_t bestCount = 0;
+            for (size_t i = 0; i < ambient->count; i++)
+            {
+                size_t count = 0;
+                for (size_t j = 0; j < ambient->count; j++)
+                {
+                    if (std::strcmp(ambient->emitters[j].efxPath, ambient->emitters[i].efxPath) == 0)
+                    {
+                        count++;
+                    }
+                }
+                if (count > bestCount)
+                {
+                    bestCount = count;
+                    best = &ambient->emitters[i];
+                }
+            }
+            return best;
+        }
+
         const MapAmbient* activeAmbient = nullptr;
-        std::string activeAmbientMap;          // map the state below was built for; empty = inactive
+        std::string activeAmbientKey;          // map (+ style) the state below was built for; empty = inactive
+        const char* activeStyleEfx = nullptr;  // when set, replaces every emitter's own effect (preset style)
+        float activeStyleDelayMs = 0.0f;
         std::vector<int> emitterNextFireTime;  // per emitter, in cg.time ms
         std::map<std::string, int> fxHandleCache;  // efx path -> fx handle; 0 = load failed (warned)
         bool dumpedDemoEffects = false;
 
         void ResetEmitters()
         {
-            if (activeAmbientMap.empty())
+            if (activeAmbientKey.empty())
             {
                 return;
             }
             activeAmbient = nullptr;
-            activeAmbientMap.clear();
+            activeAmbientKey.clear();
+            activeStyleEfx = nullptr;
             emitterNextFireTime.clear();
             fxHandleCache.clear();
             dumpedDemoEffects = false;
@@ -517,18 +627,32 @@ namespace IWXMVM::IW2::Hooks::Fog
             return handle;
         }
 
-        void ApplyEmitters(const std::string& mapName)
+        // styleEfx = nullptr replays each emitter's own effect; a non-null styleEfx (a preset
+        // map's dominant weather effect) replaces the effect and firing delay at every anchor
+        // point instead - the anchors stay the current map's, their origins are world coordinates
+        void ApplyEmitters(const std::string& mapName, const char* styleEfx, float styleDelayMs)
         {
-            if (mapName != activeAmbientMap)
+            const auto key = styleEfx != nullptr ? mapName + '|' + styleEfx : mapName;
+            if (key != activeAmbientKey)
             {
                 ResetEmitters();
-                activeAmbientMap = mapName;
+                activeAmbientKey = key;
+                activeStyleEfx = styleEfx;
+                activeStyleDelayMs = styleDelayMs;
                 activeAmbient = FindByMapName(STOCK_MAP_AMBIENT, mapName);
                 if (activeAmbient != nullptr)
                 {
                     emitterNextFireTime.assign(activeAmbient->count, 0);
-                    LOG_INFO("Fog override: replaying the {} ambient weather emitters of '{}'", activeAmbient->count,
-                             activeAmbient->map);
+                    if (styleEfx != nullptr)
+                    {
+                        LOG_INFO("Fog override: replaying the {} ambient emitter positions of '{}' with '{}'",
+                                 activeAmbient->count, activeAmbient->map, styleEfx);
+                    }
+                    else
+                    {
+                        LOG_INFO("Fog override: replaying the {} ambient weather emitters of '{}'",
+                                 activeAmbient->count, activeAmbient->map);
+                    }
                 }
             }
             if (activeAmbient == nullptr)
@@ -556,7 +680,8 @@ namespace IWXMVM::IW2::Hooks::Fog
                 }
                 else
                 {
-                    const auto delay = std::max(1, static_cast<int>(emitter.delayMs));
+                    const auto delay = std::max(
+                        1, static_cast<int>(activeStyleEfx != nullptr ? activeStyleDelayMs : emitter.delayMs));
                     if (now - nextFire < delay)
                     {
                         continue;
@@ -567,7 +692,7 @@ namespace IWXMVM::IW2::Hooks::Fog
                     } while (now - nextFire >= delay);
                 }
 
-                const auto handle = GetFxHandle(emitter.efxPath);
+                const auto handle = GetFxHandle(activeStyleEfx != nullptr ? activeStyleEfx : emitter.efxPath);
                 if (handle == 0)
                 {
                     continue;
@@ -576,11 +701,16 @@ namespace IWXMVM::IW2::Hooks::Fog
                 glm::vec3 origin(emitter.origin[0], emitter.origin[1], emitter.origin[2]);
                 auto forward =
                     glm::normalize(glm::vec3(emitter.target[0], emitter.target[1], emitter.target[2]) - origin);
-                reinterpret_cast<FX_PlayEffect_t>(Addresses::FX_PlayEffect)(fxSystem, nullptr, handle, &origin.x,
-                                                                            &forward.x);
+                GetFXPlayEffect()(fxSystem, nullptr, handle, &origin.x, &forward.x);
             }
         }
     }  // namespace
+
+    void Install()
+    {
+        HookManager::CreateHook(Addresses::FX_PlayEffect, reinterpret_cast<uintptr_t>(FX_PlayEffect_Hook),
+                                reinterpret_cast<uintptr_t*>(&FX_PlayEffect_Trampoline));
+    }
 
     void SetOverride(bool enabled, const std::string& preset, bool particles)
     {
@@ -588,7 +718,9 @@ namespace IWXMVM::IW2::Hooks::Fog
         particlesEnabled = particles;
         presetName = preset;
         lastWarnedMap.clear();
-        ResetEmitters();  // re-resolve next frame: another demo numbers its fx ids differently
+        // re-resolve next frame: another demo numbers its fx ids differently
+        ResetEmitters();
+        SetRealEmittersMuted(false, {});
     }
 
     bool DemoHasFog()
@@ -623,16 +755,41 @@ namespace IWXMVM::IW2::Hooks::Fog
         }
 
         const auto demoHasFog = DemoHasFog();
+        const auto mapName = GetMapName();
 
-        // demos that render fog also carry the server-spawned ambient particle entities, so there
-        // is nothing to replay for them; fogless (comp) demos get the map's stock emitters back
-        // along with the fog, unless the particle toggle opts out
-        if (fogEnabled && particlesEnabled && !demoHasFog)
+        // The particle toggle is independent of the fog: demos that carry fog also carry the
+        // real server-spawned ambient emitter entities (muted at FX_PlayEffect when unwanted),
+        // while fogless (comp) demos get the map's stock emitters replayed client-side. A fog
+        // preset from another stock map also carries its atmosphere: the current map's anchor
+        // points play the preset map's dominant weather effect instead of their own.
+        const auto currentAmbient = FindByMapName(STOCK_MAP_AMBIENT, mapName);
+        const auto presetAmbient =
+            fogEnabled && !presetName.empty() ? FindByMapName(STOCK_MAP_AMBIENT, presetName) : nullptr;
+        const auto presetStyle =
+            presetAmbient != nullptr && presetAmbient != currentAmbient ? DominantEmitter(presetAmbient) : nullptr;
+
+        if (!particlesEnabled)
         {
-            ApplyEmitters(GetMapName());
+            // no particles at all: mute whatever the demo carries, replay nothing
+            SetRealEmittersMuted(demoHasFog, mapName);
+            ResetEmitters();
+        }
+        else if (presetStyle != nullptr && currentAmbient != nullptr)
+        {
+            // preset atmosphere: mute the real emitters (if any) and replay the swapped style
+            SetRealEmittersMuted(demoHasFog, mapName);
+            ApplyEmitters(mapName, presetStyle->efxPath, presetStyle->delayMs);
+        }
+        else if (!demoHasFog)
+        {
+            // fogless comp demo: the map's own emitters are missing - replay them
+            SetRealEmittersMuted(false, mapName);
+            ApplyEmitters(mapName, nullptr, 0.0f);
         }
         else
         {
+            // vanilla demo showing its own particles
+            SetRealEmittersMuted(false, mapName);
             ResetEmitters();
         }
 
@@ -672,14 +829,14 @@ namespace IWXMVM::IW2::Hooks::Fog
 
         // a chosen preset - or, for demos whose mod suppressed the fog configstring (zPAM comp
         // rules do), the current map's own stock fog
-        const auto mapName = presetName.empty() ? GetMapName() : presetName;
-        const auto fog = FindByMapName(STOCK_MAP_FOG, mapName);
+        const auto fogMapName = presetName.empty() ? mapName : presetName;
+        const auto fog = FindByMapName(STOCK_MAP_FOG, fogMapName);
         if (fog == nullptr)
         {
-            if (lastWarnedMap != mapName)
+            if (lastWarnedMap != fogMapName)
             {
-                lastWarnedMap = mapName;
-                LOG_WARN("Fog override: no stock fog values for map '{}'; leaving fog untouched", mapName);
+                lastWarnedMap = fogMapName;
+                LOG_WARN("Fog override: no stock fog values for map '{}'; leaving fog untouched", fogMapName);
             }
             return;
         }
@@ -697,11 +854,11 @@ namespace IWXMVM::IW2::Hooks::Fog
         switchFog(1, GetCgTime(), 0);
         overrideApplied = true;
 
-        if (appliedName != mapName)
+        if (appliedName != fogMapName)
         {
-            appliedName = mapName;
-            LOG_INFO("Fog override: applied the fog of '{}' (density {}, rgb {} {} {})", mapName, fog->density, fog->r,
-                     fog->g, fog->b);
+            appliedName = fogMapName;
+            LOG_INFO("Fog override: applied the fog of '{}' (density {}, rgb {} {} {})", fogMapName, fog->density,
+                     fog->r, fog->g, fog->b);
         }
     }
 }  // namespace IWXMVM::IW2::Hooks::Fog

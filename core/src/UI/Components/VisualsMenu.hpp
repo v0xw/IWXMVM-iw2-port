@@ -40,9 +40,8 @@ namespace IWXMVM::UI
         Components::VisualConfiguration::Settings defaultVisuals;
         std::string selectedSky;  // empty = the map's own sky
         bool fogEnabled = true;
-        std::string selectedFog;      // fog preset name; empty = the demo's own fog
-        bool fogParticles = true;     // replay the ambient particles along with restored fog
-        bool demoHasFog = true;       // demos with fog carry real particle entities; hides the toggle
+        std::string selectedFog;   // fog preset name; empty = the demo's own fog
+        bool fogParticles = true;  // show the ambient-weather particles (real or replayed)
         bool visualsInitialized = false;
         Preset defaultPreset;
         Preset currentPreset;

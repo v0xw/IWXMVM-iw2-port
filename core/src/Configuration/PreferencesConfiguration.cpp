@@ -15,8 +15,7 @@ namespace IWXMVM
         }
 
         Configuration::ReadValueInto<bool>(j, NODE_SHOW_KEYBIND_HINTS, showKeybindHints);
-        Configuration::ReadValueInto<bool>(j, NODE_SHOW_OWN_KILL_MARKERS, showOwnKillMarkers);
-        Configuration::ReadValueInto<bool>(j, NODE_SHOW_OTHER_KILL_MARKERS, showOtherKillMarkers);
+        Configuration::ReadValueInto<bool>(j, NODE_SHOW_KILL_MARKERS, showKillMarkers);
         Configuration::ReadValueInto<float>(j, NODE_FREECAM_SPEED, freecamSpeed);
         Configuration::ReadValueInto<float>(j, NODE_FREECAM_MOUSE_SPEED, freecamMouseSpeed);
         Configuration::ReadValueInto<float>(j, NODE_ORBIT_ROTATION_SPEED, orbitRotationSpeed);
@@ -30,8 +29,7 @@ namespace IWXMVM
     void PreferencesConfiguration::Serialize(nlohmann::json& j) const
     {
         j[NODE_SHOW_KEYBIND_HINTS] = showKeybindHints;
-        j[NODE_SHOW_OWN_KILL_MARKERS] = showOwnKillMarkers;
-        j[NODE_SHOW_OTHER_KILL_MARKERS] = showOtherKillMarkers;
+        j[NODE_SHOW_KILL_MARKERS] = showKillMarkers;
         j[NODE_FREECAM_SPEED] = freecamSpeed;
         j[NODE_FREECAM_MOUSE_SPEED] = freecamMouseSpeed;
         j[NODE_ORBIT_ROTATION_SPEED] = orbitRotationSpeed;

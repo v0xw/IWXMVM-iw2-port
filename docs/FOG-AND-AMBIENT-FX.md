@@ -104,8 +104,8 @@ of the same two mechanisms.
 - Ambient fire (`scr_allow_ambient_fire`: burning smoke plumes, `thin_light_smoke`) is
   deliberately not replayed — it reads as battle scenery rather than weather. Could become its
   own toggle.
-- Free-form fog sliders (density/color) + keyframeable properties — see FEATURE-IDEAS.md; the
-  renderer plumbing is done, this is UI + keyframe work.
+- Free-form fog sliders (density/color) + keyframeable properties — the renderer plumbing is
+  done, this is UI + keyframe work.
 - Locally registered fx handles are cached until the toggle/demo/map changes; a `vid_restart`
   while active could in theory leave a stale handle (the game-registered ones refresh via the
   configstring table, the fallback ones re-register on the next cache rebuild). Not observed in

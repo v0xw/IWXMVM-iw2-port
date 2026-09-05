@@ -80,17 +80,17 @@ namespace ImGuiEx
             }
         }
 
-        // game-provided markers (kills): bright red for the recording player's own, dim red for everyone else's
-        const auto& preferences = IWXMVM::PreferencesConfiguration::Get();
-        for (const auto& marker : IWXMVM::Mod::GetGameInterface()->GetDemoMarkers())
+        // game-provided markers (the recording player's kills) in red
+        if (IWXMVM::PreferencesConfiguration::Get().showKillMarkers)
         {
-            if (marker.tick < displayStartTick || marker.tick > displayEndTick)
-                continue;
-            if (marker.highlighted ? !preferences.showOwnKillMarkers : !preferences.showOtherKillMarkers)
-                continue;
+            for (const auto& marker : IWXMVM::Mod::GetGameInterface()->GetDemoMarkers())
+            {
+                if (marker.tick < displayStartTick || marker.tick > displayEndTick)
+                    continue;
 
-            const auto color = marker.highlighted ? ImVec4(1.0f, 0.1f, 0.1f, 1.0f) : ImVec4(0.8f, 0.1f, 0.1f, 0.45f);
-            DrawProgressLineAtTick(rect, marker.tick, GetColorU32(color), 2, displayStartTick, displayEndTick);
+                DrawProgressLineAtTick(rect, marker.tick, GetColorU32(ImVec4(1.0f, 0.1f, 0.1f, 1.0f)), 2,
+                                       displayStartTick, displayEndTick);
+            }
         }
 
         // capture range (Record tab) in green

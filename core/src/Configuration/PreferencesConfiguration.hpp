@@ -21,9 +21,8 @@ namespace IWXMVM
 
         bool showKeybindHints = true;
 
-        // timeline markers provided by the game (kills): the recording player's own vs. everyone else's
-        bool showOwnKillMarkers = true;
-        bool showOtherKillMarkers = true;
+        // timeline markers provided by the game (the recording player's kills)
+        bool showKillMarkers = true;
 
         float freecamSpeed = 300.0f;
         float freecamMouseSpeed = 0.1f;
@@ -40,8 +39,7 @@ namespace IWXMVM
         PreferencesConfiguration();
 
         const std::string_view NODE_SHOW_KEYBIND_HINTS = "showKeybindHints";
-        const std::string_view NODE_SHOW_OWN_KILL_MARKERS = "showOwnKillMarkers";
-        const std::string_view NODE_SHOW_OTHER_KILL_MARKERS = "showOtherKillMarkers";
+        const std::string_view NODE_SHOW_KILL_MARKERS = "showKillMarkers";
         const std::string_view NODE_FREECAM_SPEED = "freecamSpeed";
         const std::string_view NODE_FREECAM_MOUSE_SPEED = "freecamMouseSpeed";
         const std::string_view NODE_ORBIT_ROTATION_SPEED = "orbitRotationSpeed";

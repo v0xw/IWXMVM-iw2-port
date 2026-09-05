@@ -228,13 +228,15 @@ namespace IWXMVM::IW2::Hooks::Kills
         markers.clear();
         if (startTick > 0)
         {
+            // only the recording player's own kills become timeline markers; the cache still holds
+            // every kill so this can change without a rescan
             const auto pov = GetPovClientNum();
             markers.reserve(kills.size());
             for (const auto& kill : kills)
             {
-                if (kill.serverTime < startTick)
+                if (kill.serverTime < startTick || kill.attacker != pov)
                     continue;
-                markers.push_back(Types::DemoMarker{static_cast<uint32_t>(kill.serverTime - startTick), kill.attacker == pov});
+                markers.push_back(Types::DemoMarker{static_cast<uint32_t>(kill.serverTime - startTick)});
             }
         }
 

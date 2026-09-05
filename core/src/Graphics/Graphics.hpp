@@ -126,10 +126,10 @@ namespace IWXMVM::GFX
         Types::DoF dofSettings = { false, 1.8f, 800.0f, 3000.0f, 6.0f, 10.0f, 100.0f, 0.5f };
 
         IDirect3DPixelShader9* filmtweaksPS = nullptr;
-        // defaults mirror CoD4's r_filmTweak* dvar defaults
+        // defaults mirror CoD4's r_filmTweak* dvar defaults, except contrast starts neutral
         Types::Filmtweaks filmtweaksSettings = { false,
                                                  0.0f,
-                                                 1.4f,
+                                                 1.0f,
                                                  0.2f,
                                                  glm::vec3(1.1f, 1.05f, 0.9f),
                                                  glm::vec3(0.7f, 0.85f, 1.0f),

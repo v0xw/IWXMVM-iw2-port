@@ -392,15 +392,14 @@ namespace IWXMVM::UI
             const auto currentTick = Components::Playback::GetTimelineTick();
             if (currentTick < demoInfo.endTick)
             {
-                // toggles for the game-provided timeline markers (kills), only when the game supplies any
+                // toggle for the game-provided timeline markers (kills), only when the game supplies any
                 const bool hasMarkers = !Mod::GetGameInterface()->GetDemoMarkers().empty();
                 const auto markerButtonSize = ImVec2(buttonSize.x, buttonSize.y);
-                const auto markerButtonsWidth =
-                    hasMarkers ? markerButtonSize.x * 2 + ImGui::GetFontSize() * 0.3f + padding.x : 0.0f;
+                const auto markerButtonWidth = hasMarkers ? markerButtonSize.x + padding.x : 0.0f;
 
                 const auto progressBarX = padding.x + buttonSize.x + playbackSpeedSliderWidth + padding.x * 3;
                 const auto progressBarWidth =
-                    GetSize().x - progressBarX - GetSize().x * 0.05f - padding.x - markerButtonsWidth;
+                    GetSize().x - progressBarX - GetSize().x * 0.05f - padding.x - markerButtonWidth;
 
                 ImGui::SetCursorPosX(progressBarX + progressBarWidth + ImGui::GetFontSize() * 0.8f);
                 ImGui::SetCursorPosY(GetSize().y / 2 - buttonSize.y / 2);
@@ -409,28 +408,23 @@ namespace IWXMVM::UI
                 if (hasMarkers)
                 {
                     auto& preferences = PreferencesConfiguration::Get();
-                    auto DrawMarkerToggle = [&](const char* icon, bool& enabled, const char* tooltip, ImVec4 activeColor) {
-                        ImGui::PushStyleColor(ImGuiCol_Button, enabled ? activeColor : ImVec4(0.2f, 0.2f, 0.2f, 0.6f));
-                        ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
-                                              enabled ? activeColor * ImVec4(1.15f, 1.15f, 1.15f, 1.0f) : ImVec4(0.3f, 0.3f, 0.3f, 0.8f));
-                        ImGui::PushStyleColor(ImGuiCol_Text, enabled ? ImVec4(1, 1, 1, 1) : ImVec4(0.6f, 0.6f, 0.6f, 1));
-                        if (ImGui::Button(icon, markerButtonSize))
-                        {
-                            enabled = !enabled;
-                            Configuration::Get().Write(true);
-                        }
-                        ImGui::PopStyleColor(3);
-                        if (ImGui::IsItemHovered())
-                            ImGui::SetTooltip("%s", tooltip);
-                    };
+                    const bool enabled = preferences.showKillMarkers;
+                    const auto activeColor = ImVec4(0.75f, 0.12f, 0.12f, 1.0f);
 
-                    ImGui::SetCursorPosX(GetSize().x - padding.x - markerButtonsWidth + padding.x);
+                    ImGui::SetCursorPosX(GetSize().x - padding.x - markerButtonWidth + padding.x);
                     ImGui::SetCursorPosY(GetSize().y / 2 - markerButtonSize.y / 2);
-                    DrawMarkerToggle(ICON_FA_CROSSHAIRS, preferences.showOwnKillMarkers, "Show own kills on the timeline",
-                                     ImVec4(0.75f, 0.12f, 0.12f, 1.0f));
-                    ImGui::SameLine(0, ImGui::GetFontSize() * 0.3f);
-                    DrawMarkerToggle(ICON_FA_SKULL, preferences.showOtherKillMarkers, "Show kills by other players on the timeline",
-                                     ImVec4(0.45f, 0.12f, 0.12f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_Button, enabled ? activeColor : ImVec4(0.2f, 0.2f, 0.2f, 0.6f));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
+                                          enabled ? activeColor * ImVec4(1.15f, 1.15f, 1.15f, 1.0f) : ImVec4(0.3f, 0.3f, 0.3f, 0.8f));
+                    ImGui::PushStyleColor(ImGuiCol_Text, enabled ? ImVec4(1, 1, 1, 1) : ImVec4(0.6f, 0.6f, 0.6f, 1));
+                    if (ImGui::Button(ICON_FA_CROSSHAIRS, markerButtonSize))
+                    {
+                        preferences.showKillMarkers = !preferences.showKillMarkers;
+                        Configuration::Get().Write(true);
+                    }
+                    ImGui::PopStyleColor(3);
+                    if (ImGui::IsItemHovered())
+                        ImGui::SetTooltip("Show kills on the timeline");
                 }
 
                 const auto keyframeEditor =

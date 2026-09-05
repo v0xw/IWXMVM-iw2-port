@@ -281,6 +281,21 @@ namespace IWXMVM::IW2::Hooks::HUD
                 dvar->value.boolean = value;
         }
 
+        // A centerprint queued before a timeline jump is stale: after a rewind its start time lies in
+        // the future of the rewound clock, so CG_DrawCenterString's elapsed-time gate never expires it
+        // and the "You killed X" text lingers until the next kill replaces it. A cg.time step no real
+        // playback frame produces - backwards, or a fast-forward catch-up chunk - marks the jump.
+        void ClearStaleCenterPrint()
+        {
+            static int lastTime;
+            const auto time = *Structures::At<int>(Addresses::cg_time);
+            const auto delta = time - lastTime;
+            lastTime = time;
+
+            if (Structures::IsDemoPlaying() && (delta < 0 || delta > 500))
+                *Structures::At<int>(Addresses::cg_centerPrintTime) = 0;
+        }
+
         void ApplyPlayerFeedbackSuppression()
         {
             if (!Structures::IsDemoPlaying())
@@ -457,6 +472,7 @@ namespace IWXMVM::IW2::Hooks::HUD
             }
         }
 
+        ClearStaleCenterPrint();
         ApplyPlayerFeedbackSuppression();
         SuppressCursorHints();
         MaskHiddenHudElems();

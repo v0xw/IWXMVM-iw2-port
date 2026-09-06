@@ -24,6 +24,7 @@ namespace IWXMVM::IW2::Hooks::HUD
     extern bool showBloodOverlay;
     extern glm::vec3 killfeedTeam1Color;  // allies
     extern glm::vec3 killfeedTeam2Color;  // axis
+    extern float killfeedMessageTime;     // seconds a killfeed line stays before fading (con_gamemessagetime)
 
     void Install();
 

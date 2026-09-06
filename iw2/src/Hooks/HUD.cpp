@@ -41,6 +41,8 @@ namespace IWXMVM::IW2::Hooks::HUD
     // the game's own g_TeamColor_* defaults
     glm::vec3 killfeedTeam1Color = {0.5f, 0.5f, 1.0f};  // allies
     glm::vec3 killfeedTeam2Color = {1.0f, 0.5f, 0.5f};  // axis
+    // the game's own con_gamemessagetime default
+    float killfeedMessageTime = 5.0f;
 
     bool PlayerFeedbackVisible()
     {

@@ -16,5 +16,6 @@ namespace IWXMVM::Types
         bool showKillfeed;
         glm::vec3 killfeedTeam1Color;
         glm::vec3 killfeedTeam2Color;
+        float killfeedMessageTime;  // seconds a line stays before fading out (Features_KillfeedMessageTime only)
     };
 }  // namespace IWXMVM::Types

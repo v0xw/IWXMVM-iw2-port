@@ -1,6 +1,8 @@
 #include "StdInclude.hpp"
 #include "VisualConfiguration.hpp"
 
+#include "Mod.hpp"
+
 #include <unordered_set>
 
 // TODO: rework this somehow
@@ -36,7 +38,8 @@ namespace IWXMVM::Components
         "iwxmvm_ui_showbloodoverlay",
         "ui_hud_obituaries",
         "g_teamcolor_allies",
-        "g_teamcolor_axis"
+        "g_teamcolor_axis",
+        "con_gamemessagetime"
     };
 
     constexpr std::string_view HUD_TOGGLE_DVAR_PREFIX = "iwxmvm_ui_";
@@ -245,6 +248,8 @@ namespace IWXMVM::Components
                 toggle->value = value != 0;
             else if (dvar == "ui_hud_obituaries")
                 visuals.hudInfo.showKillfeed = value;
+            else if (dvar == "con_gamemessagetime")
+                visuals.hudInfo.killfeedMessageTime = value;
             else if (dvar == "g_teamcolor_allies")
             {
                 std::string sg, sb;
@@ -323,6 +328,8 @@ namespace IWXMVM::Components
         out << "iwxmvm_ui_showothertext " << settings.hudInfo.showIconsAndText << "\n";
         out << "iwxmvm_ui_showbloodoverlay " << settings.hudInfo.showBloodOverlay << "\n";
         out << "ui_hud_obituaries " << settings.hudInfo.showKillfeed << "\n";
+        if (Mod::GetGameInterface()->GetSupportedFeatures() & Types::Features_KillfeedMessageTime)
+            out << "con_gamemessagetime " << settings.hudInfo.killfeedMessageTime << "\n";
         out << "g_teamcolor_allies " << settings.hudInfo.killfeedTeam1Color[0] << " "
             << settings.hudInfo.killfeedTeam1Color[1] << " " << settings.hudInfo.killfeedTeam1Color[2]
             << " 1\n";

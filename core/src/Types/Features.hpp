@@ -23,5 +23,9 @@ namespace IWXMVM::Types
 
         // the game has no flashbang effect, so the shellshock toggle is labeled accordingly
         Features_NoFlashbangs = 1 << 4,
+
+        // the game exposes how long a killfeed line stays on screen before fading out, so the
+        // visuals tab offers a "Fade Out Delay" setting (HudInfo::killfeedMessageTime)
+        Features_KillfeedMessageTime = 1 << 5,
     };
 }  // namespace IWXMVM::Types

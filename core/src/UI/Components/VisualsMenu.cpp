@@ -413,6 +413,18 @@ namespace IWXMVM::UI
                 ImGui::Unindent();
             }
 
+            if (features & Types::Features_KillfeedMessageTime)
+            {
+                ImGui::AlignTextToFramePadding();
+                ImGui::Text("Fade Out Delay");
+                ImGui::SameLine();
+                ImGui::SetCursorPosX(ImGui::GetWindowWidth() * 0.4f);
+                ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.6f - ImGui::GetStyle().WindowPadding.x);
+                modified = ImGui::SliderFloat("##killfeedMessageTime", &visuals.hudInfo.killfeedMessageTime, 0.0f,
+                                              30.0f, "%.1f s") ||
+                           modified;
+            }
+
             ImGui::AlignTextToFramePadding();
             ImGui::Text("Team 1 Color");
             ImGui::SameLine();

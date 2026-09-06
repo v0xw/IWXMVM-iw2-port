@@ -69,7 +69,7 @@ namespace IWXMVM::IW2
             return static_cast<Types::Features>(
                 Types::Features_ChangeAnimations | Types::Features_TemporalBoneSmoothing |
                 Types::Features_SharedDepthStencil | Types::Features_CorePostProcess |
-                Types::Features_NoFlashbangs);
+                Types::Features_NoFlashbangs | Types::Features_KillfeedMessageTime);
         }
 
         // ----------------------------------------------------------------------------------------------------
@@ -403,6 +403,15 @@ namespace IWXMVM::IW2
             return fallback;
         }
 
+        void SetDvarFloat(const char* name, float value)
+        {
+            const auto dvar = Functions::FindDvar(name);
+            if (!dvar || dvar->type != Structures::DVAR_TYPE_FLOAT)
+                return;
+            dvar->value.decimal = value;
+            dvar->modified = true;
+        }
+
         void SetDvarBool(const char* name, bool value)
         {
             const auto dvar = Functions::FindDvar(name);
@@ -450,6 +459,7 @@ namespace IWXMVM::IW2
             hudInfo.showKillfeed = Hooks::HUD::showKillfeed;
             hudInfo.killfeedTeam1Color = Hooks::HUD::killfeedTeam1Color;
             hudInfo.killfeedTeam2Color = Hooks::HUD::killfeedTeam2Color;
+            hudInfo.killfeedMessageTime = Hooks::HUD::killfeedMessageTime;
             return hudInfo;
         }
 
@@ -492,6 +502,11 @@ namespace IWXMVM::IW2
             // gamestate parse (i.e. every rewind)
             Hooks::HUD::killfeedTeam1Color = hudInfo.killfeedTeam1Color;
             Hooks::HUD::killfeedTeam2Color = hudInfo.killfeedTeam2Color;
+
+            // how long each killfeed line stays before it fades out; the console stamps the expiry
+            // when the line is added, so a change applies from the next line on (not archived)
+            Hooks::HUD::killfeedMessageTime = hudInfo.killfeedMessageTime;
+            SetDvarFloat("con_gamemessagetime", hudInfo.killfeedMessageTime);
         }
 
         std::vector<Types::HudToggle> GetHudToggles() final

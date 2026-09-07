@@ -97,6 +97,18 @@ namespace IWXMVM::IW2::Addresses
     constexpr uintptr_t CG_Obituary = 0x004E03F0;  // entityState_t* in EAX (otherEntityNum = victim, attackerEntityNum), localClientNum in DIL
     constexpr uintptr_t cg_centerPrintTime = 0x01519A10;  // int, start time of the active centerprint; 0 = none (CG_DrawCenterString @ 0x4C8360 gates on it). CG_Obituary centerprints the "You killed X" / "Killed by X" texts
 
+    // The console's message windows (Con_OneTimeInit @ 0x4044A0): [0] game messages = killfeed, [1] bold game
+    // messages, [2] chat, [3] minicon. Header { line* lines; int firstLine; int lineCount; int visibleLines;
+    // int scrollTime; int fadeInTime; int fadeOutTime; } followed by the 8 inline lines. Each line is 164 bytes:
+    // 78 char+color pairs, then the cl.serverTime it was added (0 = free) and the cl.serverTime it expires
+    // (Con_UpdateMessageWindowLine @ 0x404210 stamps them, Con_DrawMessageWindow reads them)
+    constexpr uintptr_t con_messageWindows = 0x006017B4;
+    constexpr uint32_t con_messageWindow_count = 4;
+    constexpr uint32_t con_messageWindow_size = 1340;
+    constexpr uint32_t con_messageLine_size = 164;
+    constexpr uint32_t con_messageLine_startTime = 156;
+    constexpr uint32_t con_messageLine_expireTime = 160;
+
     constexpr uintptr_t CG_ParseFog = 0x004D07D0;  // void __cdecl(); re-reads the fog configstring (12) and hands it to the renderer
 
     // custom convention (mirrors the game's looped-fx entity handler @ 0x4CD6B0): ECX = the fx

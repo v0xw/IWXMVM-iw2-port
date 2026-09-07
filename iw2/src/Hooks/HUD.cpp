@@ -283,19 +283,61 @@ namespace IWXMVM::IW2::Hooks::HUD
                 dvar->value.boolean = value;
         }
 
-        // A centerprint queued before a timeline jump is stale: after a rewind its start time lies in
-        // the future of the rewound clock, so CG_DrawCenterString's elapsed-time gate never expires it
-        // and the "You killed X" text lingers until the next kill replaces it. A cg.time step no real
-        // playback frame produces - backwards, or a fast-forward catch-up chunk - marks the jump.
-        void ClearStaleCenterPrint()
+        // Text the game timestamps against its clock goes stale on a timeline jump: after a rewind the
+        // stamps lie in the future of the rewound clock, after a skip forward the catch-up replays old
+        // events onto the landing frame. A cg.time step no real playback frame produces - backwards,
+        // or a fast-forward catch-up chunk - marks the jump.
+        bool TimelineJumpedThisFrame()
         {
             static int lastTime;
             const auto time = *Structures::At<int>(Addresses::cg_time);
             const auto delta = time - lastTime;
             lastTime = time;
 
-            if (Structures::IsDemoPlaying() && (delta < 0 || delta > 500))
-                *Structures::At<int>(Addresses::cg_centerPrintTime) = 0;
+            return Structures::IsDemoPlaying() && (delta < 0 || delta > 500);
+        }
+
+        // CG_DrawCenterString's elapsed-time gate never expires a centerprint stamped in the future, so
+        // the "You killed X" text would linger until the next kill replaces it.
+        void ClearStaleCenterPrint()
+        {
+            *Structures::At<int>(Addresses::cg_centerPrintTime) = 0;
+        }
+
+        // The killfeed (and the other console message windows) keeps its lines' start / expiry stamps.
+        // An expired line only gets its start zeroed; the expiry stays. Con_UpdateMessageWindowLine, when
+        // it adds a line, re-stamps every older line whose expiry still lies beyond now + fadeOut so it
+        // starts fading right away - without checking that the line is in use. After a rewind the stale
+        // expiries of long-cleared lines are exactly that, so the next kill resurrects them for one
+        // fade-out (a 500 ms flash of old kills / mod prints under the new line). Wiping both stamps of
+        // every line makes the windows forget everything from before the jump, including the lines the
+        // catch-up just replayed onto the landing frame.
+        void ClearMessageWindows()
+        {
+            for (uint32_t w = 0; w < Addresses::con_messageWindow_count; ++w)
+            {
+                const auto window = Addresses::con_messageWindows + w * Addresses::con_messageWindow_size;
+                const auto lines = *Structures::At<uint8_t*>(window);
+                const auto lineCount = *Structures::At<int>(window + 8);
+                if (lines == nullptr || lineCount <= 0 || lineCount > 64)
+                    continue;
+
+                for (int i = 0; i < lineCount; ++i)
+                {
+                    const auto line = lines + i * Addresses::con_messageLine_size;
+                    *reinterpret_cast<int*>(line + Addresses::con_messageLine_startTime) = 0;
+                    *reinterpret_cast<int*>(line + Addresses::con_messageLine_expireTime) = 0;
+                }
+            }
+        }
+
+        void ClearStaleTextOnTimelineJump()
+        {
+            if (!TimelineJumpedThisFrame())
+                return;
+
+            ClearStaleCenterPrint();
+            ClearMessageWindows();
         }
 
         void ApplyPlayerFeedbackSuppression()
@@ -474,7 +516,7 @@ namespace IWXMVM::IW2::Hooks::HUD
             }
         }
 
-        ClearStaleCenterPrint();
+        ClearStaleTextOnTimelineJump();
         ApplyPlayerFeedbackSuppression();
         SuppressCursorHints();
         MaskHiddenHudElems();

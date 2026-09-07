@@ -21,12 +21,17 @@ namespace IWXMVM::IW2::Hooks::Kills
 
     struct Kill
     {
-        int32_t serverTime;  // absolute cl.serverTime when the obituary was processed
+        int32_t serverTime;  // server time of the snapshot that carries the obituary event
         int32_t attacker;
         int32_t victim;
 
         bool operator==(const Kill&) const = default;
     };
+
+    // bump when the stored data changes meaning; older caches are discarded and the demo rescanned
+    // (1: live kills were stamped with the interpolated client clock, which is far off the snapshot
+    // time while the game catches up after a rewind / skip, leaving duplicate markers around each kill)
+    constexpr int CACHE_VERSION = 2;
 
     std::vector<Kill> kills;
     std::vector<Types::DemoMarker> markers;
@@ -67,6 +72,7 @@ namespace IWXMVM::IW2::Hooks::Kills
             std::filesystem::create_directories(CacheDirectory());
 
             nlohmann::json root;
+            root["version"] = CACHE_VERSION;
             root["demo"] = cacheDemoName;
             root["povClientNum"] = GetPovClientNum();
             root["complete"] = cacheComplete;
@@ -100,10 +106,18 @@ namespace IWXMVM::IW2::Hooks::Kills
         {
             std::ifstream file(path);
             const auto root = nlohmann::json::parse(file);
+            if (root.value("version", 1) != CACHE_VERSION)
+            {
+                LOG_INFO("Discarding outdated kill marker cache for {}", demoName);
+                return;
+            }
+
             for (const auto& entry : root.at("kills"))
             {
-                kills.push_back(Kill{entry.at("t").get<int32_t>(), entry.at("a").get<int32_t>(), entry.at("v").get<int32_t>()});
+                // same dedup as for live kills, so a cache can never carry duplicates
+                AddKill(entry.at("t").get<int32_t>(), entry.at("a").get<int32_t>(), entry.at("v").get<int32_t>());
             }
+            cacheDirty = false;
             cacheComplete = root.value("complete", false);
             LOG_DEBUG("Loaded {} cached kill markers for {} ({})", kills.size(), demoName,
                       cacheComplete ? "complete" : "partial");
@@ -213,7 +227,14 @@ namespace IWXMVM::IW2::Hooks::Kills
 
         SanitizeObituaryNames(es);
 
-        AddKill(*At<int32_t>(Addresses::cl_serverTime), es->attackerEntityNum, es->otherEntityNum);
+        // stamp the kill with the server time of the snapshot carrying the event, which is what the offline
+        // scan records too. cl.serverTime is the interpolated client clock; while the game catches up after
+        // a rewind / skip it is nowhere near the snapshot being processed, so the same kill would come
+        // back under a different time and pass the dedup as a new one
+        const auto snap = *At<uint8_t*>(Addresses::cg_snap);
+        const auto serverTime = snap ? *reinterpret_cast<int32_t*>(snap + Addresses::snap_serverTime)
+                                     : *At<int32_t>(Addresses::cl_serverTime);
+        AddKill(serverTime, es->attackerEntityNum, es->otherEntityNum);
 
         // the file is tiny; writing it right away means nothing is lost on a crash
         Save();

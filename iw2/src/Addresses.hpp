@@ -189,6 +189,7 @@ namespace IWXMVM::IW2::Addresses
     constexpr uintptr_t cg_latestSnapshotTime = 0x014EE09C;
     constexpr uintptr_t cg_snap = 0x014EE0A0;      // snapshot_t*
     constexpr uintptr_t cg_nextSnap = 0x014EE0A4;  // snapshot_t*
+    constexpr uint32_t snap_serverTime = 8;        // int; snapshot_t starts { snapFlags, ping, serverTime, ... }
     // inside snapshot_t: the playerstate's shellshock state (CG_UpdateShellShock @ 0x4D3260 deactivates
     // cleanly - blur, sound, turn cap - when the start time reads 0)
     constexpr uint32_t snap_shellshockIndex = 1508;     // int (cgs shellshock parms index)

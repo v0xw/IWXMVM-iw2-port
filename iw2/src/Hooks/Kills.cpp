@@ -24,14 +24,16 @@ namespace IWXMVM::IW2::Hooks::Kills
         int32_t serverTime;  // server time of the snapshot that carries the obituary event
         int32_t attacker;
         int32_t victim;
+        bool fromScan;  // recorded by the offline scan (authoritative) rather than the live hook
 
         bool operator==(const Kill&) const = default;
     };
 
     // bump when the stored data changes meaning; older caches are discarded and the demo rescanned
     // (1: live kills were stamped with the interpolated client clock, which is far off the snapshot
-    // time while the game catches up after a rewind / skip, leaving duplicate markers around each kill)
-    constexpr int CACHE_VERSION = 2;
+    // time while the game catches up after a rewind / skip, leaving duplicate markers around each kill;
+    // 2: live kills kept being merged into a complete cache, and the game replays events late after a rewind)
+    constexpr int CACHE_VERSION = 3;
 
     std::vector<Kill> kills;
     std::vector<Types::DemoMarker> markers;
@@ -112,13 +114,17 @@ namespace IWXMVM::IW2::Hooks::Kills
                 return;
             }
 
+            // a complete cache holds exactly the scan's kills; a partial one is live-hook data that the
+            // scan replaces once it finishes
+            const bool complete = root.value("complete", false);
             for (const auto& entry : root.at("kills"))
             {
                 // same dedup as for live kills, so a cache can never carry duplicates
-                AddKill(entry.at("t").get<int32_t>(), entry.at("a").get<int32_t>(), entry.at("v").get<int32_t>());
+                AddKill(entry.at("t").get<int32_t>(), entry.at("a").get<int32_t>(), entry.at("v").get<int32_t>(),
+                        complete);
             }
             cacheDirty = false;
-            cacheComplete = root.value("complete", false);
+            cacheComplete = complete;
             LOG_DEBUG("Loaded {} cached kill markers for {} ({})", kills.size(), demoName,
                       cacheComplete ? "complete" : "partial");
         }
@@ -152,17 +158,35 @@ namespace IWXMVM::IW2::Hooks::Kills
         Load(cacheDemoName);
     }
 
-    void AddKill(int32_t serverTime, int32_t attacker, int32_t victim)
+    void AddKill(int32_t serverTime, int32_t attacker, int32_t victim, bool fromScan)
     {
-        const Kill kill{serverTime, attacker, victim};
+        // The scan decodes every snapshot in order and so sees each obituary exactly where it happened. The
+        // live hook does not: after a rewind the game resets all entities and replays up to the last four
+        // queued events of each one on whatever snapshot it lands on, and temp entity events fire on first
+        // sight anywhere within their lifetime - so a kill can come back several snapshots late. Once the
+        // scan has covered the whole demo it is the sole source of truth.
+        if (cacheComplete && !fromScan)
+            return;
 
-        // the live hook sees obituaries again after a rewind, and overlaps with the offline scan;
-        // ignore duplicates (with a little slack)
-        for (const auto& known : kills)
+        const Kill kill{serverTime, attacker, victim, fromScan};
+
+        // the live hook sees obituaries again after a rewind, and overlaps with the offline scan while it is
+        // still running; ignore duplicates (with a little slack)
+        for (auto& known : kills)
         {
             if (known.attacker == kill.attacker && known.victim == kill.victim &&
                 std::abs(known.serverTime - kill.serverTime) <= 100)
+            {
+                // the scan's stamp is the exact one; take it over a live sighting of the same kill, so the
+                // entry survives the live cleanup when the scan finishes
+                if (fromScan && !known.fromScan)
+                {
+                    known = kill;
+                    markersDirty = true;
+                    cacheDirty = true;
+                }
                 return;
+            }
         }
 
         kills.push_back(kill);
@@ -172,7 +196,11 @@ namespace IWXMVM::IW2::Hooks::Kills
 
     void OnScanFinished()
     {
+        // whatever the live hook contributed in the meantime is superseded by the scan's complete list
+        std::erase_if(kills, [](const Kill& kill) { return !kill.fromScan; });
+
         cacheComplete = true;
+        markersDirty = true;
         cacheDirty = true;
         Save();
     }
@@ -234,7 +262,7 @@ namespace IWXMVM::IW2::Hooks::Kills
         const auto snap = *At<uint8_t*>(Addresses::cg_snap);
         const auto serverTime = snap ? *reinterpret_cast<int32_t*>(snap + Addresses::snap_serverTime)
                                      : *At<int32_t>(Addresses::cl_serverTime);
-        AddKill(serverTime, es->attackerEntityNum, es->otherEntityNum);
+        AddKill(serverTime, es->attackerEntityNum, es->otherEntityNum, false);
 
         // the file is tiny; writing it right away means nothing is lost on a crash
         Save();

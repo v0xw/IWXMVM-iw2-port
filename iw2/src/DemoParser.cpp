@@ -375,7 +375,7 @@ namespace IWXMVM::IW2::DemoParser
             // temp entity carrying a single event; the game fires it once, when the entity first shows up
             if (!wasPresent && state.eType - ET_EVENTS == EV_OBITUARY)
             {
-                Hooks::Kills::AddKill(serverTime, state.attackerEntityNum, state.otherEntityNum);
+                Hooks::Kills::AddKill(serverTime, state.attackerEntityNum, state.otherEntityNum, true);
                 ++scan.killsFound;
             }
             return;
@@ -402,7 +402,7 @@ namespace IWXMVM::IW2::DemoParser
         {
             if (state.events[i & 3] == EV_OBITUARY)
             {
-                Hooks::Kills::AddKill(serverTime, state.attackerEntityNum, state.otherEntityNum);
+                Hooks::Kills::AddKill(serverTime, state.attackerEntityNum, state.otherEntityNum, true);
                 ++scan.killsFound;
             }
         }

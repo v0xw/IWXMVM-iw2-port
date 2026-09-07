@@ -340,6 +340,25 @@ namespace IWXMVM::IW2::Hooks::HUD
             ClearMessageWindows();
         }
 
+        // zPAM renders several info texts through client dvars picked up by its menus: the still-alive enemy
+        // names (bottom right), the sniper / shotgun wielders (bottom left) and the server warnings ("Server
+        // password is not set!", "This is an old version of map, use mp_xxx_fix!", changed cvars). The demo
+        // keeps re-setting them through recorded server commands, so while the zPAM-text toggle is off they
+        // are blanked every frame - and it has to happen here, after CG_DrawActiveFrame executed the frame's
+        // server commands and before the menus paint, or a fresh value shows for exactly one frame.
+        void SuppressZpamText()
+        {
+            if (showModText || !Structures::IsDemoPlaying())
+                return;
+
+            for (const auto name : {"ui_playersleft_list", "ui_sniper_info", "ui_shotgun_info", "ui_serverinfo_hud"})
+            {
+                const auto dvar = Functions::FindDvar(name);
+                if (dvar && dvar->type == Structures::DVAR_TYPE_STRING && dvar->value.string && dvar->value.string[0])
+                    Functions::Dvar_SetString(dvar, "");
+            }
+        }
+
         void ApplyPlayerFeedbackSuppression()
         {
             if (!Structures::IsDemoPlaying())
@@ -517,6 +536,7 @@ namespace IWXMVM::IW2::Hooks::HUD
         }
 
         ClearStaleTextOnTimelineJump();
+        SuppressZpamText();
         ApplyPlayerFeedbackSuppression();
         SuppressCursorHints();
         MaskHiddenHudElems();

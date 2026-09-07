@@ -36,11 +36,38 @@ namespace IWXMVM::IW2::Hooks::Camera
     typedef void(__cdecl* CG_CalcViewValues_t)();
     CG_CalcViewValues_t CG_CalcViewValues_Trampoline = nullptr;
 
+    // Keeps the game's view dvars matching the active camera. Runs on camera changes and again every frame:
+    // the game resets cg_thirdPerson itself in CG_MapRestart (every zPAM round start), which otherwise left
+    // the POV player invisible in free camera until the mode was toggled.
+    void ApplyCameraDvars()
+    {
+        auto& camera = Components::CameraManager::Get().GetActiveCamera();
+        const auto isModControlled = camera->IsModControlledCameraMode();
+        const auto isThirdPerson = camera->GetMode() == Components::Camera::Mode::ThirdPerson;
+        const auto wantThirdPerson = isModControlled || isThirdPerson;
+
+        // cg_thirdPerson / cg_drawGun are cheat protected; write the values directly (only once cgame has
+        // registered them with their real type - an implicit string dvar must not be touched)
+        if (auto cg_thirdPerson = Functions::FindDvar("cg_thirdPerson");
+            cg_thirdPerson && cg_thirdPerson->type == Structures::DVAR_TYPE_BOOL)
+            cg_thirdPerson->value.boolean = wantThirdPerson;
+
+        if (auto cg_drawGun = Functions::FindDvar("cg_drawGun"); cg_drawGun && cg_drawGun->type == Structures::DVAR_TYPE_BOOL)
+            cg_drawGun->value.boolean = !isModControlled;
+
+        // CG_DrawActiveFrame already derived cg.renderingThirdPerson from the dvar for this frame before we
+        // get here; force it on so the POV player is drawn in the very frame the game reset the dvar (never
+        // force it off - the game turns it on by itself while the POV player is dead)
+        if (wantThirdPerson)
+            *At<int>(Addresses::cg_renderingThirdPerson) = 1;
+    }
+
     void __cdecl CG_CalcViewValues_Hook()
     {
         // runs before CG_DrawActive calls R_RenderScene, so the r_draw* dvars (and the green
         // clear command, if a greenscreen pass hides the world) are in place for this frame
         HUD::ApplyRenderingFlags();
+        ApplyCameraDvars();
 
         CG_CalcViewValues_Trampoline();
 
@@ -90,18 +117,7 @@ namespace IWXMVM::IW2::Hooks::Camera
 
     void OnCameraChanged()
     {
-        auto& camera = Components::CameraManager::Get().GetActiveCamera();
-        const auto isModControlled = camera->IsModControlledCameraMode();
-        const auto isThirdPerson = camera->GetMode() == Components::Camera::Mode::ThirdPerson;
-
-        // cg_thirdPerson / cg_drawGun are cheat protected; write the values directly (only once cgame has
-        // registered them with their real type - an implicit string dvar must not be touched)
-        if (auto cg_thirdPerson = Functions::FindDvar("cg_thirdPerson");
-            cg_thirdPerson && cg_thirdPerson->type == Structures::DVAR_TYPE_BOOL)
-            cg_thirdPerson->value.boolean = isModControlled || isThirdPerson;
-
-        if (auto cg_drawGun = Functions::FindDvar("cg_drawGun"); cg_drawGun && cg_drawGun->type == Structures::DVAR_TYPE_BOOL)
-            cg_drawGun->value.boolean = !isModControlled;
+        ApplyCameraDvars();
     }
 
     void Install()

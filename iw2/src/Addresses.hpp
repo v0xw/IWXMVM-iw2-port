@@ -182,6 +182,9 @@ namespace IWXMVM::IW2::Addresses
 
     constexpr uintptr_t cg = 0x014EE080;  // sizeof(cg_t) == 0xF49A0
     constexpr uintptr_t cg_time = 0x01513C30;  // int; cg.time (cg + 0x25BB0)
+    // int; cg.renderingThirdPerson (cg + 0x25BC0): CG_DrawActiveFrame sets it from cg_thirdPerson || dead right
+    // before CG_PredictPlayerState / CG_CalcViewValues; CG_Player skips the POV player while it is 0
+    constexpr uintptr_t cg_renderingThirdPerson = 0x01513C40;
     constexpr uintptr_t cg_clientNum = 0x014EE084;
     constexpr uintptr_t cg_isDemoPlaying = 0x014EE088;
     constexpr uintptr_t cg_cubemapShot = 0x014EE08C;  // int; nonzero while rendering a cubemap shot (game skips all 2D)

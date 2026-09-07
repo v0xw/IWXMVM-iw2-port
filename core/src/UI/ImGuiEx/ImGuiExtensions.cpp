@@ -66,7 +66,8 @@ namespace ImGuiEx
     }
 
     void DemoProgressBarLines(const ImRect rect, uint32_t currentTick, uint32_t displayStartTick,
-                              uint32_t displayEndTick, std::uint32_t demoLength, std::optional<uint32_t> frozenTick)
+                              uint32_t displayEndTick, std::uint32_t demoLength, std::optional<uint32_t> frozenTick,
+                              bool drawDemoMarkers)
     {
         using namespace ImGui;
 
@@ -82,7 +83,7 @@ namespace ImGuiEx
         }
 
         // game-provided markers (the recording player's kills) in red
-        if (IWXMVM::PreferencesConfiguration::Get().showKillMarkers)
+        if (drawDemoMarkers && IWXMVM::PreferencesConfiguration::Get().showKillMarkers)
         {
             for (const auto& marker : IWXMVM::Mod::GetGameInterface()->GetDemoMarkers())
             {

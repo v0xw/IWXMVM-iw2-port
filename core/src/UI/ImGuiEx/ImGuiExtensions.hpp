@@ -9,6 +9,9 @@ namespace ImGuiEx
 
     bool TimescaleSlider(const char* label, float* v, float v_min, float v_max, const char* format,
                          ImGuiSliderFlags flags);
+    // drawDemoMarkers: also draw the game-provided markers (kills); only the main timeline wants those, the
+    // keyframe editor's per-property timelines would just repeat them
     void DemoProgressBarLines(ImRect rect, std::uint32_t currentTick, std::uint32_t displayStartTick,
-                              std::uint32_t displayEndTick, std::uint32_t demoLength, std::optional<uint32_t> frozenTick);
+                              std::uint32_t displayEndTick, std::uint32_t demoLength, std::optional<uint32_t> frozenTick,
+                              bool drawDemoMarkers);
 }  // namespace ImGuiEx

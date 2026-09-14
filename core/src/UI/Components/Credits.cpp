@@ -16,7 +16,7 @@ namespace IWXMVM::UI
             return;
 
         ImGui::SetNextWindowFocus();
-        ImGui::SetNextWindowSize(ImVec2(300, 400));
+        ImGui::SetNextWindowSize(ImVec2(300, 440));
         if (ImGui::Begin("Credits", &visible, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse))
         {
             ImGui::PushFont(UIManager::Get().GetBoldFont());

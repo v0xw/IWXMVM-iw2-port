@@ -12,7 +12,6 @@ A port of [IWXMVM](https://github.com/reallyluckyy/IWXMVM) to **Call of Duty 2**
 featuring keyframeable campaths, a fully rewindable video editor-like timeline, a death animation picker, sun/fog/particles/DoF editor and built-in ProRes video capturing support.
 
 This repository contains IWXMVM's game-agnostic core together with the CoD2 game module.
-; see [Credits](#credits).
 
 ## Supported Game
 
@@ -23,8 +22,8 @@ This repository contains IWXMVM's game-agnostic core together with the CoD2 game
 ## Requirements
 
 - Visual Studio 2022 (or newer)
-- DirectX SDK Jun10 is optional: when `DXSDK_DIR` is not set, the copy of Microsoft's
-  [Microsoft.DXSDK.D3DX](https://www.nuget.org/packages/Microsoft.DXSDK.D3DX) package under `core/third-party/d3dx` is used
+- DirectX SDK Jun10 (to build) - sets `DXSDK_DIR`, providing `d3dx9.h`/`d3dx9.lib`
+- DirectX End-User Runtime (Jun2010) (to run) - provides `d3dx9_43.dll`/`D3DCompiler_43.dll`, which neither Windows nor Call of Duty 2 ships; the mod will not load without it
 
 ## Building
 
@@ -44,8 +43,7 @@ iw2launcher\bin\Win32\Release\iw2launcher.exe
 ```
 
 Alternatively, inject `iw2.dll` (from `iw2\bin\Win32\Release\`) with the injector of your choice.
-Nothing needs to be copied into the game installation: the DLL is injected straight from the build
-output, and `iw2.dll` loads `D3DCompiler_43.dll` from its own directory (staged there by the build).
+Nothing needs to be copied into the game installation: the DLL is injected straight from the build output.
 
 ## Project Structure
 

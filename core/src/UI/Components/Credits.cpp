@@ -38,6 +38,14 @@ namespace IWXMVM::UI
             ImGui::Text("xoxor4d");
             ImGui::Text("Gmzorz");
 
+            ImGui::Dummy(ImVec2(0, 20));
+
+            ImGui::PushFont(UIManager::Get().GetBoldFont());
+            ImGui::Text("Ports");
+            ImGui::PopFont();
+
+            ImGui::Text("v0lts (IW2)");
+
             ImGui::Dummy(ImVec2(50, 50));
 
             ImGui::End();

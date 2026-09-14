@@ -33,7 +33,7 @@ namespace IWXMVM::UI
             auto indent = 10;
 
             ImGui::TextWrapped("Welcome to IWXMVM, a recording mod for various Call of Duty games!");
-            ImGui::TextWrapped("While this is an official release, there will still be bugs. If you find any, feel free to open an issue on https://github.com/reallyluckyy/IWXMVM/.");
+            ImGui::TextWrapped("There will still be bugs. If you find any, feel free to open an issue on https://github.com/v0xw/IWXMVM-iw2-port/.");
 
             ImGui::Dummy(ImVec2(0, 20));
 

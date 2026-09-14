@@ -9,17 +9,16 @@
 ## About
 
 A port of [IWXMVM](https://github.com/reallyluckyy/IWXMVM) to **Call of Duty 2** (2005): a recording mod
-featuring keyframeable campaths, a fully rewindable video editor-like timeline, kill markers detected at
-demo load time, a bone camera and built-in ProRes video capturing support.
+featuring keyframeable campaths, a fully rewindable video editor-like timeline, a death animation picker, sun/fog/particles/DoF editor and built-in ProRes video capturing support.
 
-This repository contains IWXMVM's game-agnostic core together with the CoD2 game module. It is not part
-of upstream IWXMVM; see [Credits](#credits).
+This repository contains IWXMVM's game-agnostic core together with the CoD2 game module.
+; see [Credits](#credits).
 
 ## Supported Game
 
 | Game          | Notes |
 | ------------- | ----- |
-| Call of Duty 2 Multiplayer | v1.3 only (`CoD2MP_s.exe`, hardcoded addresses, `.dm_1` demos). Works alongside [CoD2x](https://github.com/eyza-cod2/CoD2x). |
+| Call of Duty 2 Multiplayer | v1.3 (with 1.4.6.8 [CoD2x](https://github.com/eyza-cod2/CoD2x)) only (`CoD2MP_s.exe`, hardcoded addresses, `.dm_1` demos). |
 
 ## Requirements
 

@@ -9,6 +9,4 @@ namespace IWXMVM::IW2::Hooks::Diagnostics
     uint32_t GetVidRestartCount();
     uint32_t GetComErrorCount();
 
-    // "0x12345678 (module.dll+0x1234)"
-    std::string DescribeAddress(uintptr_t address);
 }  // namespace IWXMVM::IW2::Hooks::Diagnostics

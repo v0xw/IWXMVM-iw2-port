@@ -10,6 +10,7 @@
 #include "Mod.hpp"
 #include "UI/UIManager.hpp"
 #include "Utilities/HookManager.hpp"
+#include "Utilities/ExceptionDiagnostics.hpp"
 
 namespace IWXMVM::D3D9
 {
@@ -551,7 +552,8 @@ namespace IWXMVM::D3D9
             memcpy(d3d9SwapChainVTable, *(void**)pSwapChain, 10 * sizeof(void*));
             pSwapChain->Release();
 
-            LOG_DEBUG("Found D3D9 SwapChain Present address: {}", d3d9SwapChainVTable[3]);
+            LOG_DEBUG("Found D3D9 SwapChain Present address: {}",
+                      ExceptionDiagnostics::DescribeAddress(reinterpret_cast<uintptr_t>(d3d9SwapChainVTable[3])));
         }
     }
 
@@ -622,6 +624,15 @@ namespace IWXMVM::D3D9
 
     void Initialize()
     {
+        // A d3d9.dll wrapper in the game folder (ReShade, dgVoodoo, DXVK, ...) takes the place of the system
+        // runtime, which is the first thing to know about any failure in here.
+        if (const auto d3d9Module = GetModuleHandleA("d3d9.dll"))
+        {
+            char path[MAX_PATH]{};
+            GetModuleFileNameA(d3d9Module, path, MAX_PATH);
+            LOG_INFO("Direct3D 9 runtime: {}", path);
+        }
+
         FindSwapChain();
         CreateDummyDevice();
         Hook();

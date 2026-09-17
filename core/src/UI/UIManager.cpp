@@ -3,6 +3,7 @@
 
 #include "UIComponent.hpp"
 #include "Utilities/HookManager.hpp"
+#include "Utilities/ExceptionDiagnostics.hpp"
 #include "Mod.hpp"
 #include "Events.hpp"
 #include "Resources.hpp"
@@ -103,10 +104,14 @@ namespace IWXMVM::UI
         }
         catch (...)
         {
-            LOG_CRITICAL("An error occurred while rendering the IWXMVM user interface");
+            // with /EHa this is where hardware exceptions (access violations, ...) end up
+            const auto lastException = ExceptionDiagnostics::TakeLastExceptionOnThisThread();
+            const auto message = std::format("An error occurred while rendering the IWXMVM user interface: {}",
+                                             lastException.empty() ? "unknown exception type" : lastException);
+            LOG_CRITICAL("{}", message);
 
             // TODO: panic function
-            MessageBox(NULL, "An error occurred while rendering the IWXMVM user interface", "FATAL ERROR", MB_OK);
+            MessageBox(NULL, message.c_str(), "FATAL ERROR", MB_OK);
         }
     }
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "StdInclude.hpp"
 #include "GameInterface.hpp"
+#include "Utilities/ExceptionDiagnostics.hpp"
 
 #include "Addresses.hpp"
 #include "Structures.hpp"
@@ -229,7 +230,7 @@ namespace IWXMVM::IW2
             const auto count = CaptureStackBackTrace(1, 12, frames, nullptr);
             std::string trace;
             for (USHORT i = 0; i < count; ++i)
-                trace += Hooks::Diagnostics::DescribeAddress(reinterpret_cast<uintptr_t>(frames[i])) + " <- ";
+                trace += ExceptionDiagnostics::DescribeAddress(reinterpret_cast<uintptr_t>(frames[i])) + " <- ";
             LOG_WARN("Vid_Restart requested; stack: {}", trace);
 
             if (Structures::IsDemoPlaying())

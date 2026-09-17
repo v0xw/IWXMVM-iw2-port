@@ -171,6 +171,7 @@
     <ClCompile Include="src\UI\UIImage.cpp" />
     <ClCompile Include="src\UI\UIManager.cpp" />
     <ClCompile Include="src\Utilities\HookManager.cpp" />
+    <ClCompile Include="src\Utilities\ExceptionDiagnostics.cpp" />
     <ClCompile Include="src\Utilities\MemoryUtils.cpp" />
     <ClCompile Include="src\Utilities\PathUtils.cpp" />
     <ClCompile Include="src\Utilities\MathUtils.cpp" />
@@ -243,6 +244,7 @@
     <ClInclude Include="src\UI\UIComponent.hpp" />
     <ClInclude Include="src\UI\UIImage.hpp" />
     <ClInclude Include="src\Utilities\HookManager.hpp" />
+    <ClInclude Include="src\Utilities\ExceptionDiagnostics.hpp" />
     <ClInclude Include="src\Events.hpp" />
     <ClInclude Include="src\GameInterface.hpp" />
     <ClInclude Include="src\Logger.hpp" />

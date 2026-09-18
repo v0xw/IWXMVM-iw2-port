@@ -33,6 +33,10 @@ git clone --recursive https://github.com/v0xw/IWXMVM-iw2-port.git
 ```
 Then build the included solution file using Visual Studio.
 
+Every push to `master` is built by GitHub Actions (binaries and symbols are attached to the run as artifacts).
+Every push to the `release` branch is built the same way and published under Releases as
+`v<version>.<build>`, with the launcher and DLL in one zip and the debug symbols in another.
+
 ## Running
 
 Run the included launcher, then start Call of Duty 2 the way you normally do - the launcher waits for

@@ -1,0 +1,129 @@
+name: Build
+
+# Every push to master (and every pull request against it) is built and the binaries are attached to the
+# run as artifacts. Every push to the release branch is built the same way and then published as a GitHub
+# release, tagged v<IWXMVM_VERSION>.<commit count>.
+
+on:
+  push:
+    branches: [master, release]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+      - name: Check out (with submodules and full history)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      # The core project's pre-build step compiles incbin with cl.exe, so a full x86 developer environment
+      # is needed, not just msbuild.
+      - name: Set up the MSVC x86 environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x86
+
+      # The projects expect the June 2010 DirectX SDK through DXSDK_DIR (d3dx9.h, d3dx9.lib). Microsoft ships
+      # the same D3DX bits as a NuGet package; lay it out the way the SDK would.
+      - name: Provide D3DX (DirectX SDK June 2010) via NuGet
+        shell: pwsh
+        run: |
+          $packages = Join-Path $env:RUNNER_TEMP 'nuget'
+          nuget install Microsoft.DXSDK.D3DX -Version 9.29.952.8 -OutputDirectory $packages -NonInteractive
+          if ($LASTEXITCODE -ne 0) { throw "nuget install failed" }
+          $native = Get-ChildItem (Join-Path $packages 'Microsoft.DXSDK.D3DX*\build\native') | Select-Object -First 1
+          if (-not $native) { throw "package layout not recognized" }
+
+          $dxsdk = Join-Path $env:RUNNER_TEMP 'DXSDK'
+          New-Item -ItemType Directory -Force (Join-Path $dxsdk 'Lib\x86') | Out-Null
+          Copy-Item (Join-Path $native.FullName 'include') (Join-Path $dxsdk 'Include') -Recurse
+          Copy-Item (Join-Path $native.FullName 'release\lib\x86\d3dx9.lib') (Join-Path $dxsdk 'Lib\x86')
+          foreach ($required in 'Include\d3dx9.h', 'Lib\x86\d3dx9.lib') {
+            if (-not (Test-Path (Join-Path $dxsdk $required))) { throw "missing $required" }
+          }
+          "DXSDK_DIR=$dxsdk\" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Build Release x86
+        shell: pwsh
+        run: msbuild IWXMVM.sln /m /v:m /p:Configuration=Release /p:Platform=x86
+
+      - name: Collect binaries and symbols
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force out\IWXMVM-iw2, out\symbols | Out-Null
+          Copy-Item iw2\bin\Win32\Release\iw2.dll, iw2launcher\bin\Win32\Release\iw2launcher.exe, README.md, LICENSE out\IWXMVM-iw2\
+          Get-ChildItem iw2\bin\Win32\Release\*.pdb, iw2launcher\bin\Win32\Release\*.pdb | Copy-Item -Destination out\symbols\
+          Get-ChildItem out -Recurse -File | Select-Object FullName, Length
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: IWXMVM-iw2
+          path: out\IWXMVM-iw2
+
+      - name: Upload symbols
+        uses: actions/upload-artifact@v4
+        with:
+          name: IWXMVM-iw2-symbols
+          path: out\symbols
+
+      # ---- release branch only -------------------------------------------------------------------------------
+
+      - name: Determine the release version and notes
+        if: github.ref == 'refs/heads/release'
+        id: version
+        shell: pwsh
+        run: |
+          $base = (Select-String -Path core\src\Version.hpp -Pattern 'IWXMVM_VERSION\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value
+          $build = (git rev-list --count HEAD).Trim()
+          $version = "$base.$build"
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "tag=v$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+          $previous = git tag --list 'v*' --merged HEAD --sort=-creatordate | Select-Object -First 1
+          if ($previous) {
+            $changes = git log --format='- %s' "$previous..HEAD" --no-merges
+            $heading = "Changes since $previous"
+          } else {
+            $changes = git log --format='- %s' -n 30 --no-merges
+            $heading = "Recent changes"
+          }
+          $notes = @(
+            "IWXMVM for Call of Duty 2 (1.3), build $build of version $base, commit $($env:GITHUB_SHA.Substring(0, 7)).",
+            "",
+            "Requires the DirectX End-User Runtime (June 2010) on the machine running the game.",
+            "The launcher waits for CoD2MP_s.exe and injects iw2.dll; the symbols zip is only needed to analyze crashes.",
+            "",
+            "## $heading",
+            ""
+          ) + $changes
+          $notes | Out-File -FilePath out\notes.md -Encoding utf8
+          Get-Content out\notes.md
+
+      - name: Package the release zips
+        if: github.ref == 'refs/heads/release'
+        shell: pwsh
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          Compress-Archive -Path out\IWXMVM-iw2 -DestinationPath "out\IWXMVM-iw2-v$version.zip"
+          Compress-Archive -Path out\symbols\* -DestinationPath "out\IWXMVM-iw2-symbols-v$version.zip"
+
+      - name: Publish the GitHub release
+        if: github.ref == 'refs/heads/release'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: IWXMVM iw2 v${{ steps.version.outputs.version }}
+          body_path: out/notes.md
+          files: |
+            out/IWXMVM-iw2-v*.zip
+            out/IWXMVM-iw2-symbols-v*.zip

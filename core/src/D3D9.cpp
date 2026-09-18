@@ -32,6 +32,11 @@ namespace IWXMVM::D3D9
     IDirect3DSurface9* gameBackBufferId = nullptr;    // identity for comparison only, not a ref
     bool mainDepthStencilSeen = false;
 
+    // Only the first EndScene between two Presents is the game's frame. Later ones come from overlays that
+    // draw their own scene on top (GeForce Experience, RivaTuner, ...); handling those too would capture and
+    // grade a backbuffer that already carries our UI, and run the UI twice per frame.
+    bool frameHandled = false;
+
     typedef HRESULT(__stdcall* EndScene_t)(IDirect3DDevice9* pDevice);
     EndScene_t EndScene;
     EndScene_t ReshadeOriginalEndScene;
@@ -40,6 +45,10 @@ namespace IWXMVM::D3D9
     typedef HRESULT(__stdcall* Present_t)(IDirect3DDevice9* pDevice, const RECT* pSourceRect, const RECT* pDestRect,
                                           HWND hDestWindowOverride, const RGNDATA* pDirtyRegion, DWORD dwFlags);
     Present_t SwapChainPresent;
+    typedef HRESULT(__stdcall* DevicePresent_t)(IDirect3DDevice9* pDevice, const RECT* pSourceRect,
+                                                const RECT* pDestRect, HWND hDestWindowOverride,
+                                                const RGNDATA* pDirtyRegion);
+    DevicePresent_t DevicePresent;
     typedef HRESULT(__stdcall* CreateDevice_t)(IDirect3D9* pInterface, UINT Adapter, D3DDEVTYPE DeviceType,
                                                HWND hFocusWindow, DWORD BehaviorFlags,
                                                D3DPRESENT_PARAMETERS* pPresentationParameters,
@@ -252,6 +261,7 @@ namespace IWXMVM::D3D9
 
 		foundInterceptedDepthTexture = false;
         ReleaseInterceptedDepthResources();
+        frameHandled = false;
 
         HRESULT hr = CreateDevice(pInterface, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters,
             ppReturnedDeviceInterface);
@@ -304,6 +314,25 @@ namespace IWXMVM::D3D9
         return false;
     }
 
+    void LogIgnoredEndSceneCaller(std::uintptr_t returnAddress)
+    {
+        static std::array<std::uintptr_t, 4> seen{};
+        for (auto& entry : seen)
+        {
+            if (entry == returnAddress)
+            {
+                return;
+            }
+            if (entry == 0)
+            {
+                entry = returnAddress;
+                LOG_DEBUG("Ignoring EndScene calls from {} that follow the game's own within a frame",
+                          ExceptionDiagnostics::DescribeAddress(returnAddress));
+                return;
+            }
+        }
+    }
+
     bool capturedAlready = false;
     std::size_t reshadeEndSceneCallCount;
     HRESULT __stdcall EndScene_Hook(IDirect3DDevice9* pDevice)
@@ -320,6 +349,13 @@ namespace IWXMVM::D3D9
             UI::UIManager::Get().Initialize(pDevice);
             GFX::GraphicsManager::Get().Initialize();
         }
+
+        if (frameHandled)
+        {
+            LogIgnoredEndSceneCaller(returnAddress);
+            return EndScene(pDevice);
+        }
+        frameHandled = true;
 
         if (Mod::GetGameInterface()->GetGameState() == Types::GameState::InDemo)
         {
@@ -402,6 +438,7 @@ namespace IWXMVM::D3D9
 
         ReleaseInterceptedDepthResources();
         foundInterceptedDepthTexture = false;
+        frameHandled = false;
 
         const bool wasUIInitialized = UI::UIManager::Get().IsInitialized();
         if (wasUIInitialized)
@@ -480,8 +517,17 @@ namespace IWXMVM::D3D9
                                    HWND hDestWindowOverride, const RGNDATA* pDirtyRegion, DWORD dwFlags)
     {
         reshadeEndSceneCallCount = 0;
+        frameHandled = false;
         return SwapChainPresent(pDevice, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
+    }
 
+    HRESULT __stdcall DevicePresent_Hook(IDirect3DDevice9* pDevice, const RECT* pSourceRect, const RECT* pDestRect,
+                                         HWND hDestWindowOverride, const RGNDATA* pDirtyRegion)
+    {
+        // whether IDirect3DDevice9::Present routes through the swap chain's Present hooked above is a d3d9
+        // implementation detail, so the per-frame state is reset here as well; doing it twice is harmless
+        frameHandled = false;
+        return DevicePresent(pDevice, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
     }
 
     void CheckPresenceReshade()
@@ -607,6 +653,8 @@ namespace IWXMVM::D3D9
             (std::uintptr_t*)&Reset);
         HookManager::CreateHook((std::uintptr_t)d3d9SwapChainVTable[3], (std::uintptr_t)SwapChainPresent_Hook,
             (std::uintptr_t*)&SwapChainPresent);
+        HookManager::CreateHook((std::uintptr_t)d3d9DeviceVTable[17], (std::uintptr_t)DevicePresent_Hook,
+            (std::uintptr_t*)&DevicePresent);
         HookManager::CreateHook((std::uintptr_t)d3d9DeviceVTable[42], (std::uintptr_t)EndScene_Hook,
             (std::uintptr_t*)&EndScene);
         HookManager::CreateHook((std::uintptr_t)d3d9DeviceVTable[39], (std::uintptr_t)SetDepthStencilSurface_Hook,

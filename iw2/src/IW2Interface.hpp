@@ -524,6 +524,7 @@ namespace IWXMVM::IW2
                 {"showplayersleft", "Players Left Alive", Section::Main, Hooks::HUD::showPlayersLeftAlive, true},
                 {"showhints", "Hints", Section::Main, Hooks::HUD::showHints, false},
                 {"showteammateicons", "Teammate Icons", Section::Main, Hooks::HUD::showTeammateIcons, false},
+                {"showdeathicons", "Death Icons", Section::Main, Hooks::HUD::showDeathIcons, false},
                 {"showchat", "Chat", Section::Main, Hooks::HUD::showChat, false},
                 {"showbombtimer", "Bomb Timer", Section::Main, Hooks::HUD::showBombTimer, false},
                 {"showmodtext", "zPAM Text", Section::Main, Hooks::HUD::showModText, true},
@@ -560,6 +561,8 @@ namespace IWXMVM::IW2
                 else
                     Patches::GetGamePatches().CG_DrawPlayerSprites.Apply();
             }
+            else if (id == "showdeathicons")
+                Hooks::HUD::showDeathIcons = value;  // resolved against show2DElements per frame in the CG_Draw3dHudElems hook
             else if (id == "showchat")
             {
                 Hooks::HUD::showChat = value;

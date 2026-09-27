@@ -77,6 +77,7 @@ namespace IWXMVM::IW2::Addresses
     constexpr uintptr_t CG_DrawActive = 0x004CBE50;
     constexpr uintptr_t CG_Draw2D = 0x004CBCA0;
     constexpr uintptr_t CG_Draw2dHudElems = 0x004DDFF0;  // void __cdecl()
+    constexpr uintptr_t CG_Draw3dHudElems = 0x004DE040;  // void __cdecl(); draws the world-anchored (setWaypoint, type 13) hudelems, i.e. the stock _deathicons.gsc skulls; called between CG_DrawPlayerSprites and CG_Draw2D, so cg_draw2D does not gate it
     constexpr uintptr_t CG_DrawGameMessages = 0x004CAD60;
     constexpr uintptr_t CG_DrawChatMessages = 0x004C7760;  // void __cdecl(); chat ring buffer drawer (cg_chatHeight / cg_chatTime)
     constexpr uintptr_t CG_AddObituaryMessage = 0x00405530;  // adds the killfeed line for a kill; __usercall EAX/EBX + caller-cleaned stack args, plain ret; only called from CG_Obituary
@@ -223,7 +224,7 @@ namespace IWXMVM::IW2::Addresses
     constexpr uint32_t hudElem_count = 31;
     constexpr uint32_t hudElem_size = 128;
     // hudelem layout from CoD2x cod2_player.h (32 int-sized fields, 128 bytes)
-    constexpr uint32_t hudElem_type = 0;   // int: 1 text, 2 value, 3..5/7 timers, 6 material icon, 0xB/0xC clock+material, 13 fade
+    constexpr uint32_t hudElem_type = 0;   // int: 1 text, 2 value, 3..5/7 timers, 6 material icon, 0xB/0xC clock+material, 13 waypoint (world-anchored, drawn by CG_Draw3dHudElems)
     constexpr uint32_t hudElem_x = 4;      // float
     constexpr uint32_t hudElem_y = 8;      // float
     constexpr uint32_t hudElem_materialIdx = 60;  // int: material configstring index

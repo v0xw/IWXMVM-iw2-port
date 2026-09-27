@@ -27,6 +27,7 @@ namespace IWXMVM::IW2::Hooks::HUD
     bool showPlayersLeftAlive = false;
     bool showHints = false;
     bool showTeammateIcons = false;
+    bool showDeathIcons = false;
     bool showChat = false;
     bool showBombTimer = false;
     bool showPlayerHUD = false;
@@ -255,6 +256,79 @@ namespace IWXMVM::IW2::Hooks::HUD
             maskedCount = 0;
         }
     }  // namespace
+
+    // ---------------------------------------------------------------------------------------------------------
+    // Death icons. The stock _deathicons.gsc (vanilla CoD2 and mods that keep it; zPAM has no death icons at
+    // all) marks where a teammate died with a team hudelem showing the headicon_dead skull, anchored in the
+    // world through setWaypoint. Waypoint hudelems (type 13) are not part of the 2D pass: CG_Draw3dHudElems
+    // draws them between the player sprites and CG_Draw2D, so neither cg_draw2D nor the foreground masking
+    // above reaches them. Its per-element drawer only draws elements whose type reads 13 while its collector
+    // only stops at type 0, so hidden skulls are retyped for the duration of the call and restored afterwards.
+    // ---------------------------------------------------------------------------------------------------------
+
+    namespace
+    {
+        constexpr int HUDELEM_TYPE_WAYPOINT = 13;
+        constexpr int MASKED_TYPE = 0x7FFFFFFF;
+
+        struct MaskedTypeElem
+        {
+            int* type;
+            int original;
+        };
+        MaskedTypeElem maskedTypeElems[2 * 31];
+        size_t maskedTypeCount = 0;
+
+        bool IsDeathIconElem(uint8_t* elem)
+        {
+            const auto type = *reinterpret_cast<int*>(elem + Addresses::hudElem_type);
+            return type == HUDELEM_TYPE_WAYPOINT && _strnicmp(GetElemMaterialName(elem), "headicon_dead", 13) == 0;
+        }
+
+        void MaskDeathIcons()
+        {
+            maskedTypeCount = 0;
+            if (!Structures::IsDemoPlaying() || (showDeathIcons && show2DElements))
+                return;
+
+            const auto snap = *Structures::At<uint8_t*>(Addresses::cg_nextSnap);
+            if (snap == nullptr)
+                return;
+
+            for (const auto arrayOffset : {Addresses::snap_hudElemsCurrent, Addresses::snap_hudElemsArchival})
+            {
+                for (uint32_t i = 0; i < Addresses::hudElem_count; i++)
+                {
+                    const auto elem = snap + arrayOffset + i * Addresses::hudElem_size;
+                    const auto type = reinterpret_cast<int*>(elem + Addresses::hudElem_type);
+                    if (*type == 0)
+                        break;
+                    if (!IsDeathIconElem(elem))
+                        continue;
+
+                    maskedTypeElems[maskedTypeCount++] = {type, *type};
+                    *type = MASKED_TYPE;
+                }
+            }
+        }
+
+        void RestoreDeathIcons()
+        {
+            for (size_t i = 0; i < maskedTypeCount; i++)
+                *maskedTypeElems[i].type = maskedTypeElems[i].original;
+            maskedTypeCount = 0;
+        }
+    }  // namespace
+
+    typedef void(__cdecl* CG_Draw3dHudElems_t)();
+    CG_Draw3dHudElems_t CG_Draw3dHudElems_Trampoline = nullptr;
+
+    static void __cdecl CG_Draw3dHudElems_Hook()
+    {
+        MaskDeathIcons();
+        CG_Draw3dHudElems_Trampoline();
+        RestoreDeathIcons();
+    }
 
     // ---------------------------------------------------------------------------------------------------------
     // CG_Draw2D returns immediately when cg_draw2D is 0, which also drops the sniper scope overlay - leaving a
@@ -772,6 +846,9 @@ namespace IWXMVM::IW2::Hooks::HUD
     {
         HookManager::CreateHook(Addresses::CG_Draw2D, reinterpret_cast<uintptr_t>(CG_Draw2D_Hook),
                                 reinterpret_cast<uintptr_t*>(&CG_Draw2D_Trampoline));
+
+        HookManager::CreateHook(Addresses::CG_Draw3dHudElems, reinterpret_cast<uintptr_t>(CG_Draw3dHudElems_Hook),
+                                reinterpret_cast<uintptr_t*>(&CG_Draw3dHudElems_Trampoline));
 
         HookManager::CreateHook(Addresses::CG_AddGameMessage, reinterpret_cast<uintptr_t>(CG_AddGameMessage_Hook),
                                 &CG_AddGameMessage_Trampoline);
